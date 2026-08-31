@@ -808,7 +808,7 @@
       <div class="table-wrap" id="backupTableWrap"></div>
     </section>
 
-    <!-- PANEL UNIT SERVICE (KETERANGAN DIBUAT MANDATORY REQUIRED) -->
+    <!-- PANEL UNIT SERVICE -->
     <section class="panel" id="panel-pinjam">
       <h1 class="page-title">Manajemen Unit Service</h1>
       <div class="page-sub">Penerimaan unit service dari customer, alokasi unit backup, dan penawaran PO/SO.</div>
@@ -904,7 +904,6 @@
             <div class="field"></div>
           </div>
 
-          <!-- KETERANGAN / CATATAN SERVICE MANDATORY -->
           <div class="field">
             <label>Keterangan / Alasan Batal Service <span style="color:var(--c-red);">* (Wajib Diisi)</span></label>
             <textarea id="l_catatan" rows="2" placeholder="Tuliskan analisis kerusakan, status pengerjaan, atau alasan pembatalan service..." required></textarea>
@@ -1175,7 +1174,6 @@ function renderDashboard() {
   });
 
   loans.forEach(l => {
-    // Kalau sudah ada tanggal pengiriman, jadwalnya sudah dihitung lewat Data Unit di atas (berbasis tanggal pengiriman) — jangan dihitung dobel.
     if(l.intervalNilai && !l.tglKirimUnit) {
       const baseDate = l.tanggalPinjam;
       const next = calcNextDate(baseDate, l.intervalNilai, l.intervalUnit);
@@ -1244,7 +1242,7 @@ function renderDashboard() {
       }).join('');
 }
 
-/* ACTIONS & FORMS */
+/* ACTIONS & FORMS DENGAN ASYNC PREVENTDEFAULT (ANTI-REFRESH) */
 
 // 1. MASTER CUSTOMER ACTIONS
 function editCustomer(id) {
@@ -1272,15 +1270,15 @@ function resetCustForm() {
   document.getElementById('custCancelBtn').style.display = 'none';
 }
 
-function deleteCustomer(id) {
+async function deleteCustomer(id) {
   if(confirm('Yakin ingin menghapus data customer ini?')) {
     customers = customers.filter(c => c.id !== id);
-    saveToServer('customers', customers);
     renderAll();
+    await saveToServer('customers', customers);
   }
 }
 
-document.getElementById('custForm').addEventListener('submit', (e) => {
+document.getElementById('custForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const editId = document.getElementById('c_editId').value;
   const newItem = {
@@ -1299,12 +1297,68 @@ document.getElementById('custForm').addEventListener('submit', (e) => {
   } else {
     customers.push(newItem);
   }
-  saveToServer('customers', customers);
+  
   resetCustForm();
   renderAll();
+  await saveToServer('customers', customers);
 });
 
-// 2. DATA UNIT ACTIONS
+// 2. MASTER BARANG ACTIONS
+function editBarang(id) {
+  const item = barangs.find(b => b.id === id);
+  if(!item) return;
+  document.getElementById('m_editId').value = item.id;
+  document.getElementById('m_tipe').value = item.tipe || '';
+  document.getElementById('m_merk').value = item.merk || '';
+  document.getElementById('m_kategori').value = item.kategori || 'Vacuum Pump';
+  document.getElementById('m_spesifikasi').value = item.spesifikasi || '';
+
+  document.getElementById('barangFormTitle').textContent = 'Edit Tipe Barang';
+  document.getElementById('barangSubmitBtn').textContent = 'Update Barang';
+  document.getElementById('barangCancelBtn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetBarangForm() {
+  document.getElementById('m_editId').value = '';
+  document.getElementById('barangForm').reset();
+  document.getElementById('barangFormTitle').textContent = 'Tambah Tipe Barang';
+  document.getElementById('barangSubmitBtn').textContent = 'Simpan Barang';
+  document.getElementById('barangCancelBtn').style.display = 'none';
+}
+
+async function deleteBarang(id) {
+  if(confirm('Yakin ingin menghapus tipe barang ini?')) {
+    barangs = barangs.filter(b => b.id !== id);
+    renderAll();
+    await saveToServer('barangs', barangs);
+  }
+}
+
+document.getElementById('barangForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const editId = document.getElementById('m_editId').value;
+  const newItem = {
+    id: editId || uid(),
+    tipe: document.getElementById('m_tipe').value,
+    merk: document.getElementById('m_merk').value,
+    kategori: document.getElementById('m_kategori').value,
+    spesifikasi: document.getElementById('m_spesifikasi').value
+  };
+
+  if(editId) {
+    const idx = barangs.findIndex(b => b.id === editId);
+    if(idx !== -1) barangs[idx] = newItem;
+  } else {
+    barangs.push(newItem);
+  }
+
+  resetBarangForm();
+  renderAll();
+  await saveToServer('barangs', barangs);
+});
+
+// 3. DATA UNIT ACTIONS
 function editUnit(id) {
   const item = units.find(u => u.id === id);
   if(!item) return;
@@ -1335,15 +1389,15 @@ function resetUnitForm() {
   document.getElementById('unitCancelBtn').style.display = 'none';
 }
 
-function deleteUnit(id) {
+async function deleteUnit(id) {
   if(confirm('Apakah Anda yakin ingin menghapus data unit ini?')) {
     units = units.filter(u => u.id !== id);
-    saveToServer('units', units);
     renderAll();
+    await saveToServer('units', units);
   }
 }
 
-document.getElementById('unitForm').addEventListener('submit', (e) => {
+document.getElementById('unitForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const editId = document.getElementById('unitEditId').value;
   const newItem = {
@@ -1367,12 +1421,13 @@ document.getElementById('unitForm').addEventListener('submit', (e) => {
   } else {
     units.push(newItem);
   }
-  saveToServer('units', units);
+
   resetUnitForm();
   renderAll();
+  await saveToServer('units', units);
 });
 
-// 3. UNIT BACKUP ACTIONS
+// 4. UNIT BACKUP ACTIONS
 function editBackup(id) {
   const item = backups.find(b => b.id === id);
   if(!item) return;
@@ -1397,15 +1452,15 @@ function resetBackupForm() {
   document.getElementById('backupCancelBtn').style.display = 'none';
 }
 
-function deleteBackup(id) {
+async function deleteBackup(id) {
   if(confirm('Hapus stok unit backup ini?')) {
     backups = backups.filter(b => b.id !== id);
-    saveToServer('backups', backups);
     renderAll();
+    await saveToServer('backups', backups);
   }
 }
 
-document.getElementById('backupForm').addEventListener('submit', (e) => {
+document.getElementById('backupForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const editId = document.getElementById('b_editId').value;
   const newItem = {
@@ -1423,12 +1478,13 @@ document.getElementById('backupForm').addEventListener('submit', (e) => {
   } else {
     backups.push(newItem);
   }
-  saveToServer('backups', backups);
+
   resetBackupForm();
   renderAll();
+  await saveToServer('backups', backups);
 });
 
-// 4. UNIT SERVICE ACTIONS
+// 5. UNIT SERVICE ACTIONS
 function editLoan(id) {
   const item = loans.find(l => l.id === id);
   if(!item) return;
@@ -1463,15 +1519,15 @@ function resetLoanForm() {
   document.getElementById('loanCancelBtn').style.display = 'none';
 }
 
-function deleteLoan(id) {
+async function deleteLoan(id) {
   if(confirm('Apakah Anda yakin ingin menghapus data order service ini?')) {
     loans = loans.filter(l => l.id !== id);
-    saveToServer('loans', loans);
     renderAll();
+    await saveToServer('loans', loans);
   }
 }
 
-document.getElementById('loanForm').addEventListener('submit', (e) => {
+document.getElementById('loanForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const editId = document.getElementById('loanEditId').value;
   const backupId = document.getElementById('l_backupUnit').value;
@@ -1517,10 +1573,8 @@ document.getElementById('loanForm').addEventListener('submit', (e) => {
   } else {
     loans.push(newItem);
   }
-  saveToServer('loans', loans);
 
   // AUTO-MASUK KE DATA UNIT SAAT TANGGAL PENGIRIMAN UNIT SERVICE DIISI
-  // Interval service berikutnya dihitung mulai dari tanggal pengiriman ini.
   if(newItem.tglKirimUnit) {
     const existingIdx = units.findIndex(u => u.sourceLoanId === newItem.id);
     const unitData = {
@@ -1548,6 +1602,7 @@ document.getElementById('loanForm').addEventListener('submit', (e) => {
 
   resetLoanForm();
   renderAll();
+  await saveToServer('loans', loans);
 });
 
 /* RENDER PANEL LAPORAN */
@@ -1916,7 +1971,7 @@ function exportReportData() {
 }
 
 function renderTables() {
-  // Master Customer Table
+  // Master Customer Table (WITH EDIT & DELETE)
   document.getElementById('custTableWrap').innerHTML = customers.length === 0 
     ? `<div class="empty">Belum ada data customer terdaftar.</div>`
     : `<table>
@@ -1935,20 +1990,24 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Master Barang Table
+  // Master Barang Table (WITH EDIT & DELETE)
   document.getElementById('barangTableWrap').innerHTML = barangs.length === 0 
     ? `<div class="empty">Belum ada tipe barang terdaftar.</div>`
     : `<table>
-        <thead><tr><th>Tipe Unit</th><th>Merk</th><th>Kategori</th><th>Spesifikasi</th></tr></thead>
+        <thead><tr><th>Tipe Unit</th><th>Merk</th><th>Kategori</th><th>Spesifikasi</th><th>Aksi</th></tr></thead>
         <tbody>${barangs.map(b => `<tr>
           <td><strong>${escapeHtml(b.tipe)}</strong></td>
           <td>${escapeHtml(b.merk)||"—"}</td>
           <td><span class="badge badge-blue">${escapeHtml(b.kategori)}</span></td>
           <td>${escapeHtml(b.spesifikasi)||"—"}</td>
+          <td>
+            <button class="act-btn act-edit" onclick="editBarang('${b.id}')">Edit</button>
+            <button class="act-btn act-del" onclick="deleteBarang('${b.id}')">Hapus</button>
+          </td>
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Data Unit Table
+  // Data Unit Table (WITH EDIT & DELETE)
   document.getElementById('unitTableWrap').innerHTML = units.length === 0 
     ? `<div class="empty">Belum ada data unit terdaftar.</div>`
     : `<table>
@@ -1968,7 +2027,7 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Unit Backup Table
+  // Unit Backup Table (WITH EDIT & DELETE)
   document.getElementById('backupTableWrap').innerHTML = backups.length === 0 
     ? `<div class="empty">Belum ada data unit backup stok.</div>`
     : `<table>
@@ -1986,7 +2045,7 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Unit Service Table
+  // Unit Service Table (WITH EDIT & DELETE)
   document.getElementById('loanTableWrap').innerHTML = loans.length === 0 
     ? `<div class="empty">Belum ada data unit service.</div>`
     : `<table>
