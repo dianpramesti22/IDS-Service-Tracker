@@ -895,6 +895,15 @@
             </div>
           </div>
 
+          <div class="grid-2">
+            <div class="field">
+              <label>Tanggal Pengiriman Unit Service (Selesai)</label>
+              <input type="date" id="l_tglKirim">
+              <small style="color:var(--text-muted);">Isi saat unit sudah selesai &amp; dikirim balik ke customer. Unit akan otomatis masuk ke Data Unit, dan jadwal service berikutnya dihitung mulai dari tanggal ini.</small>
+            </div>
+            <div class="field"></div>
+          </div>
+
           <!-- KETERANGAN / CATATAN SERVICE MANDATORY -->
           <div class="field">
             <label>Keterangan / Alasan Batal Service <span style="color:var(--c-red);">* (Wajib Diisi)</span></label>
@@ -1166,7 +1175,8 @@ function renderDashboard() {
   });
 
   loans.forEach(l => {
-    if(l.intervalNilai) {
+    // Kalau sudah ada tanggal pengiriman, jadwalnya sudah dihitung lewat Data Unit di atas (berbasis tanggal pengiriman) — jangan dihitung dobel.
+    if(l.intervalNilai && !l.tglKirimUnit) {
       const baseDate = l.tanggalPinjam;
       const next = calcNextDate(baseDate, l.intervalNilai, l.intervalUnit);
       if(next) allServiceSchedule.push({ id: l.id, customer: l.customer, tipeUnit: l.tipeUnit, sn: l.sn, tanggalPengiriman: l.tanggalPinjam, nextDate: next, diff: daysDiff(next), asal: 'Unit Service' });
@@ -1432,6 +1442,7 @@ function editLoan(id) {
   document.getElementById('l_tglBackupPinjam').value = item.tglBackupPinjam || '';
   document.getElementById('l_tglBackupKembali').value = item.tglBackupKembali || '';
   document.getElementById('l_tanggal').value = item.tanggalPinjam || '';
+  document.getElementById('l_tglKirim').value = item.tglKirimUnit || '';
   document.getElementById('l_tenggang').value = item.tenggangWaktu || '';
   document.getElementById('l_intervalNilai').value = item.intervalNilai || '';
   document.getElementById('l_intervalUnit').value = item.intervalUnit || 'bulan';
@@ -1478,6 +1489,7 @@ document.getElementById('loanForm').addEventListener('submit', (e) => {
     tglBackupPinjam: document.getElementById('l_tglBackupPinjam').value,
     tglBackupKembali: tglKembali,
     tanggalPinjam: document.getElementById('l_tanggal').value,
+    tglKirimUnit: document.getElementById('l_tglKirim').value,
     tenggangWaktu: document.getElementById('l_tenggang').value,
     intervalNilai: document.getElementById('l_intervalNilai').value,
     intervalUnit: document.getElementById('l_intervalUnit').value,
@@ -1506,6 +1518,34 @@ document.getElementById('loanForm').addEventListener('submit', (e) => {
     loans.push(newItem);
   }
   saveToServer('loans', loans);
+
+  // AUTO-MASUK KE DATA UNIT SAAT TANGGAL PENGIRIMAN UNIT SERVICE DIISI
+  // Interval service berikutnya dihitung mulai dari tanggal pengiriman ini.
+  if(newItem.tglKirimUnit) {
+    const existingIdx = units.findIndex(u => u.sourceLoanId === newItem.id);
+    const unitData = {
+      id: existingIdx !== -1 ? units[existingIdx].id : uid(),
+      kategori: 'service',
+      kode: existingIdx !== -1 ? units[existingIdx].kode : ('US-' + Math.floor(1000 + Math.random() * 9000)),
+      po: newItem.po,
+      tglPo: newItem.tglPo,
+      tipeUnit: newItem.tipeUnit,
+      sn: newItem.sn,
+      customer: newItem.customer,
+      tanggalPengiriman: newItem.tglKirimUnit,
+      intervalNilai: newItem.intervalNilai,
+      intervalUnit: newItem.intervalUnit,
+      catatan: 'Otomatis dari Unit Service (Selesai)' + (newItem.catatan ? ' — ' + newItem.catatan : ''),
+      sourceLoanId: newItem.id
+    };
+    if(existingIdx !== -1) {
+      units[existingIdx] = unitData;
+    } else {
+      units.push(unitData);
+    }
+    saveToServer('units', units);
+  }
+
   resetLoanForm();
   renderAll();
 });
@@ -1950,7 +1990,7 @@ function renderTables() {
   document.getElementById('loanTableWrap').innerHTML = loans.length === 0 
     ? `<div class="empty">Belum ada data unit service.</div>`
     : `<table>
-        <thead><tr><th>Customer</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Tipe Unit</th><th>Tgl Masuk</th><th>Backup Dipinjam</th><th>Tgl Pinjam &amp; Kembali</th><th>Status Service</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>Customer</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Tipe Unit</th><th>Tgl Masuk</th><th>Tgl Kirim</th><th>Backup Dipinjam</th><th>Tgl Pinjam &amp; Kembali</th><th>Status Service</th><th>Aksi</th></tr></thead>
         <tbody>${loans.map(l => {
           const bk = backups.find(b => b.id === l.backupUnitId);
           const bkInfo = bk ? `${bk.kode} (${bk.tipeUnit})` : '—';
@@ -1967,6 +2007,7 @@ function renderTables() {
             <td>${fmtDate(l.tglPo)}</td>
             <td>${escapeHtml(l.tipeUnit)}</td>
             <td>${fmtDate(l.tanggalPinjam)}</td>
+            <td>${l.tglKirimUnit ? `${fmtDate(l.tglKirimUnit)} <span class="badge badge-green" style="font-size:10px;">DI DATA UNIT</span>` : '—'}</td>
             <td>${escapeHtml(bkInfo)}</td>
             <td><small>${tglBk}</small></td>
             <td><span class="badge ${l.status==='batal'?'badge-red':l.status==='selesai'?'badge-green':l.status==='po'||l.status==='dikerjakan'||l.status==='analisa'?'badge-amber':'badge-blue'}">${statusLabel}</span></td>
