@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vacuum Pump Service Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #eff6ff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --bg-app: #f8fafc;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+    
+    --c-red: #dc2626;
+    --c-red-bg: #fef2f2;
+    --c-amber: #d97706;
+    --c-amber-bg: #fffbeb;
+    --c-green: #16a34a;
+    --c-green-bg: #f0fdf4;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Sidebar Design */
+  .sidebar {
+    width: 270px;
+    height: 100%;
+    background: #ffffff;
+    border-right: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 16px;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+    z-index: 20;
+  }
+
+  body.collapsed .sidebar {
+    width: 0;
+    padding: 20px 0;
+    overflow: hidden;
+    border-right: none;
+  }
+
+  /* Brand Header Customization */
+  .brand-container {
+    position: relative;
+    margin-bottom: 24px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s ease;
+  }
+  .brand-container:hover {
+    background: #f1f5f9;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+
+  .brand-logo-img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+
+  .brand-logo-svg {
+    width: 26px;
+    height: 26px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  .brand-edit-btn {
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-top: 4px;
+    display: inline-block;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  nav.tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  nav.tabs button {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  nav.tabs button svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  nav.tabs button:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  nav.tabs button.active {
+    background: var(--primary);
+    color: #ffffff;
+  }
+
+  nav.tabs button.active svg { stroke: #ffffff; }
+
+  /* Main Content */
+  .main-content {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    padding: 28px 36px 60px;
+  }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .toggle-btn {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-main);
+  }
+  .toggle-btn:hover { background: #f1f5f9; }
+  .toggle-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  h1.page-title { font-size: 24px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13.5px; color: var(--text-muted); margin-bottom: 24px; }
+
+  h2.section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 32px 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Stats Cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+  }
+  .stat-card .val { font-size: 30px; font-weight: 800; color: var(--text-main); line-height: 1; }
+  .stat-card .lbl { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-top: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Top 3 Tipe Sales Cards Styling */
+  .top-type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .top-type-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+  }
+
+  .top-type-card h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .top-type-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--bg-app);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .top-type-item:last-child { margin-bottom: 0; }
+  .top-rank { font-weight: 800; color: var(--primary); width: 24px; }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+
+  .card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Filter Box Laporan */
+  .filter-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .filter-field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .filter-field input[type="date"], .filter-field select {
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    color: var(--text-main);
+    background: #ffffff;
+  }
+
+  /* Ticket Reminder Items */
+  .ticket {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    background: #ffffff;
+  }
+  .ticket.overdue { border-left-color: var(--c-red); background: var(--c-red-bg); }
+  .ticket.soon { border-left-color: var(--c-amber); background: var(--c-amber-bg); }
+
+  /* Canvas Diagram */
+  .canvas-container {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    margin-top: 10px;
+  }
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-color { width: 14px; height: 14px; border-radius: 3px; }
+
+  /* Widget Batal Service */
+  .batal-item {
+    background: var(--c-red-bg);
+    border: 1px solid #fecdd3;
+    border-left: 4px solid var(--c-red);
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+  }
+  .batal-top { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; color: var(--c-red); }
+  .batal-desc { font-size: 12.5px; color: #991b1b; margin-top: 6px; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #fee2e2; }
+
+  /* Forms */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    color: var(--text-main);
+    background: #ffffff;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .btn {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { background: var(--primary-dark); }
+  .btn-ghost { background: transparent; border: 1px solid var(--card-border); color: var(--text-main); padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
+  .btn-export { background: var(--primary-light); color: var(--primary); border: 1px solid #bfdbfe; font-size: 12.5px; padding: 8px 14px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
+
+  /* Action Buttons Edit & Hapus */
+  .act-btn {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    margin-right: 4px;
+  }
+  .act-edit { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .act-edit:hover { background: #dbeafe; }
+  .act-del { background: #fef2f2; color: #dc2626; border-color: #fecdd3; }
+  .act-del:hover { background: #fee2e2; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; background: #ffffff; border: 1px solid var(--card-border); border-radius: var(--radius-md); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+  thead th { background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid var(--card-border); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 11px; }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid var(--card-border); }
+  tbody tr:hover { background: #f8fafc; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
+  .badge-blue { background: #eff6ff; color: #1d4ed8; }
+  .badge-red { background: #fef2f2; color: #b91c1c; }
+  .badge-green { background: #f0fdf4; color: #15803d; }
+  .badge-amber { background: #fffbeb; color: #b45309; }
+
+  .empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .top-type-grid { grid-template-columns: 1fr; }
+    .main-content { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- GLOBAL DATALIST CUSTOMER -->
+  <datalist id="customerList"></datalist>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar">
+    <div class="brand-container">
+      <div class="brand" id="brandDisplay">
+        <span id="brandLogoContainer">
+          <svg class="brand-logo-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </span>
+        <span id="brandNameText">ServiceTracker</span>
+      </div>
+      <span class="brand-edit-btn" onclick="openBrandEditor()">⚙ Ubah Logo &amp; Nama</span>
+      <input type="file" id="logoFileInput" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+    </div>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="tab-btn" data-tab="laporan">
+        <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        Laporan Grafik
+      </button>
+      <button class="tab-btn" data-tab="master-customer">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Master Customer
+      </button>
+      <button class="tab-btn" data-tab="master-barang">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Master Barang
+      </button>
+      <button class="tab-btn" data-tab="unit">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Data Unit
+      </button>
+      <button class="tab-btn" data-tab="backup">
+        <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        Unit Backup
+      </button>
+      <button class="tab-btn" data-tab="pinjam">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Unit Service
+      </button>
+    </nav>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="main-content">
+    
+    <div class="top-bar">
+      <button class="toggle-btn" id="toggleBtn" title="Buka/Tutup Menu">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- PANEL DASHBOARD -->
+    <section class="panel active" id="panel-dashboard">
+      <h1 class="page-title">Dashboard Workshop</h1>
+      <div class="page-sub">Pantau performa penjualan, unit service, stok backup, unit batal service, dan jadwal maintenance.</div>
+
+      <div class="stats-grid" id="statsRow"></div>
+
+      <!-- WIDGET TOP 3 TYPE PENJUALAN TERLARIS -->
+      <div class="top-type-grid">
+        <div class="top-type-card">
+          <h4>Top 3 Type Unit Baru Terlaris</h4>
+          <div id="topNewTypeContainer"></div>
+        </div>
+        <div class="top-type-card">
+          <h4>Top 3 Type Unit Service Terbanyak</h4>
+          <div id="topServiceTypeContainer"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Daftar Unit Batal Service <span class="badge badge-red" id="cBatalTotal">0</span></h3>
+        <div id="batalList"></div>
+      </div>
+
+      <h2 class="section-title">
+        <span>Reminder Pengecekan Unit <span class="badge badge-blue" id="cUnitReminder">0</span></span>
+        <div class="filter-field" style="margin:0; flex-direction:row; align-items:center; gap:8px;">
+          <label style="margin:0;">Range:</label>
+          <select id="unitReminderDaysSelect" onchange="renderDashboard()">
+            <option value="7">H-7 Hari</option>
+            <option value="14" selected>H-14 Hari</option>
+            <option value="30">H-30 Hari</option>
+            <option value="60">H-60 Hari</option>
+            <option value="all">Semua Jadwal</option>
+          </select>
+        </div>
+      </h2>
+      <div id="unitReminders"></div>
+
+      <h2 class="section-title">Reminder Follow-up PO/SO Service <span class="badge badge-blue" id="cLoanReminder">0</span></h2>
+      <div id="loanReminders"></div>
+    </section>
+
+    <!-- PANEL LAPORAN -->
+    <section class="panel" id="panel-laporan">
+      <h1 class="page-title">Laporan Grafik &amp; Diagram Penjualan</h1>
+      <div class="page-sub">Grafik garis tren transaksi serta diagram batang penjualan berdasarkan tipe unit baru dan unit service.</div>
+
+      <div class="filter-card">
+        <div class="filter-field">
+          <label>Filter Kategori Unit</label>
+          <select id="repKategoriSelect">
+            <option value="all">Semua (Unit Baru &amp; Service)</option>
+            <option value="baru">Unit Baru Saja</option>
+            <option value="service">Unit Service Saja</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Dari Tanggal</label>
+          <input type="date" id="repStartDate">
+        </div>
+        <div class="filter-field">
+          <label>Sampai Tanggal</label>
+          <input type="date" id="repEndDate">
+        </div>
+        <button class="btn" onclick="renderReportPanel()">Filter Grafik</button>
+        <button class="btn-ghost" onclick="resetReportDates()">Reset</button>
+      </div>
+
+      <div class="stats-grid" id="reportStatsGrid"></div>
+
+      <div class="card">
+        <h3>Diagram Garis Tren Transaksi (Volume Naik - Turun)</h3>
+        <div class="chart-legend" id="chartLegend">
+          <div class="legend-item" id="legNew"><div class="legend-color" style="background:#2563eb;"></div> Unit Baru Terjual</div>
+          <div class="legend-item" id="legService"><div class="legend-color" style="background:#16a34a;"></div> Unit Service</div>
+        </div>
+        <div class="canvas-container">
+          <canvas id="lineChartCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="card" id="cardBarNew">
+        <h3>Diagram Batang Penjualan Tipe Unit Baru</h3>
+        <div class="canvas-container">
+          <canvas id="barNewCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="card" id="cardBarService">
+        <h3>Diagram Batang Penjualan Tipe Unit Service</h3>
+        <div class="canvas-container">
+          <canvas id="barServiceCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="margin:0;">Rincian Transaksi Sesuai Filter</h3>
+          <button class="btn-export" onclick="exportReportData()">↓ Export CSV Laporan</button>
+        </div>
+        <div class="table-wrap" id="reportTableWrap"></div>
+      </div>
+    </section>
+
+    <!-- PANEL MASTER CUSTOMER -->
+    <section class="panel" id="panel-master-customer">
+      <h1 class="page-title">Master Data Customer</h1>
+      <div class="page-sub">Kelola daftar pelanggan, daerah/kota, bidang industri, PIC customer, dan PIC teknisi internal.</div>
+
+      <div class="card">
+        <h3 id="custFormTitle">Tambah Customer Baru</h3>
+        <form id="custForm">
+          <input type="hidden" id="c_editId">
+          <div class="grid-2">
+            <div class="field">
+              <label>Nama Customer / Perusahaan</label>
+              <input type="text" id="c_nama" required placeholder="PT. Indofood Sukses Makmur">
+            </div>
+            <div class="field">
+              <label>Daerah / Kota</label>
+              <input type="text" id="c_kota" placeholder="Jakarta Barat / Cikarang / Surabaya">
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="field">
+              <label>Bidang Industri</label>
+              <input type="text" id="c_industri" placeholder="Makanan & Minuman">
+            </div>
+            <div class="field">
+              <label>PIC Handle Customer</label>
+              <input type="text" id="c_pic" placeholder="Pak Budi (Maintenance)">
+            </div>
+            <div class="field">
+              <label>PIC Teknisi Kantor</label>
+              <input type="text" id="c_teknisi" placeholder="Teknisi Andi / Tim B">
+            </div>
+          </div>
+          <div class="field">
+            <label>Kontak Pelanggan</label>
+            <input type="text" id="c_kontak" placeholder="0812-3456-7890">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn" id="custSubmitBtn">Simpan Customer</button>
+            <button type="button" class="btn-ghost" id="custCancelBtn" style="display:none;" onclick="resetCustForm()">Batal</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap" id="custTableWrap"></div>
+    </section>
+
+    <!-- PANEL MASTER BARANG -->
+    <section class="panel" id="panel-master-barang">
+      <h1 class="page-title">Master Barang &amp; Tipe Unit</h1>
+      <div class="page-sub">Master tipe pompa/blower sebagai pilihan otomatis saat penginputan unit.</div>
+
+      <div class="card">
+        <h3 id="barangFormTitle">Tambah Tipe Barang</h3>
+        <form id="barangForm">
+          <input type="hidden" id="m_editId">
+          <div class="grid-2">
+            <div class="field">
+              <label>Tipe / Model Unit</label>
+              <input type="text" id="m_tipe" required placeholder="Rotary Vane RV-40">
+            </div>
+            <div class="field">
+              <label>Merk / Brand</label>
+              <input type="text" id="m_merk" placeholder="Edwards / Busch / Leybold">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Kategori Barang</label>
+              <select id="m_kategori">
+                <option value="Vacuum Pump">Vacuum Pump</option>
+                <option value="Blower">Blower</option>
+                <option value="Compressor">Compressor</option>
+                <option value="Sparepart">Sparepart / Aksesoris</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Spesifikasi Singkat</label>
+              <input type="text" id="m_spesifikasi" placeholder="Flow rate 40 m3/h, 1.5 kW">
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn" id="barangSubmitBtn">Simpan Barang</button>
+            <button type="button" class="btn-ghost" id="barangCancelBtn" style="display:none;" onclick="resetBarangForm()">Batal</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap" id="barangTableWrap"></div>
+    </section>
+
+    <!-- PANEL DATA UNIT -->
+    <section class="panel" id="panel-unit">
+      <h1 class="page-title">Data Master Unit</h1>
+      <div class="page-sub">Pencatatan data unit pembelian baru maupun unit service terpasang.</div>
+
+      <div class="card">
+        <h3 id="unitFormTitle">Tambah Data Unit</h3>
+        <form id="unitForm">
+          <input type="hidden" id="unitEditId">
+          <div class="grid-3">
+            <div class="field">
+              <label>Kategori Input</label>
+              <select id="u_kategori">
+                <option value="baru">Pembelian Unit Baru</option>
+                <option value="service">Unit Service</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Kode Unit</label>
+              <input type="text" id="u_kode" placeholder="Otomatis">
+            </div>
+            <div class="field">
+              <label>Nomor PO / SO</label>
+              <input type="text" id="u_po" placeholder="PO/SO-2026-0891">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Tanggal PO / SO</label>
+              <input type="date" id="u_tglPo">
+            </div>
+            <div class="field">
+              <label>Tipe Unit (Master Barang)</label>
+              <select id="u_tipeSelect" required></select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Nomor Seri (Serial Number / SN)</label>
+              <input type="text" id="u_sn" placeholder="SN-88213">
+            </div>
+            <div class="field">
+              <label>Nama Customer (Master Customer)</label>
+              <input type="text" id="u_customer" list="customerList" placeholder="Ketik/Pilih Customer" required>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Tanggal Pengiriman</label>
+              <input type="date" id="u_tanggal" required>
+            </div>
+            <div class="field">
+              <label>Interval Service Berkala</label>
+              <div style="display:flex; gap:8px;">
+                <input type="number" id="u_intervalNilai" placeholder="6" required>
+                <select id="u_intervalUnit" style="width:100px;">
+                  <option value="bulan">Bulan</option>
+                  <option value="hari">Hari</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Catatan Unit</label>
+            <input type="text" id="u_catatan" placeholder="Catatan kondisi/lokasi unit">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn" id="unitSubmitBtn">Simpan Unit</button>
+            <button type="button" class="btn-ghost" id="unitCancelBtn" style="display:none;" onclick="resetUnitForm()">Batal</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap" id="unitTableWrap"></div>
+    </section>
+
+    <!-- PANEL UNIT BACKUP -->
+    <section class="panel" id="panel-backup">
+      <h1 class="page-title">Inventaris Unit Backup</h1>
+      <div class="page-sub">Manajemen stok unit backup yang dapat dipinjamkan ke customer.</div>
+
+      <div class="card">
+        <h3 id="backupFormTitle">Tambah Unit Backup</h3>
+        <form id="backupForm">
+          <input type="hidden" id="b_editId">
+          <div class="grid-2">
+            <div class="field">
+              <label>Kode Backup</label>
+              <input type="text" id="b_kode" placeholder="Otomatis">
+            </div>
+            <div class="field">
+              <label>Tipe Unit (Master Barang)</label>
+              <select id="b_tipeSelect" required></select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Nomor Seri / SN</label>
+              <input type="text" id="b_sn" placeholder="SN-55190">
+            </div>
+            <div class="field">
+              <label>Kondisi Unit</label>
+              <select id="b_kondisi">
+                <option value="baik">Baik (Tersedia)</option>
+                <option value="DIPINJAMKAN">DIPINJAMKAN</option>
+                <option value="perawatan">Dalam Perawatan</option>
+                <option value="rusak">Rusak</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Keterangan / Lokasi Peminjaman</label>
+            <input type="text" id="b_keterangan" placeholder="Keterangan kondisi atau nama customer jika sedang dipinjamkan">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn" id="backupSubmitBtn">Simpan Unit Backup</button>
+            <button type="button" class="btn-ghost" id="backupCancelBtn" style="display:none;" onclick="resetBackupForm()">Batal</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap" id="backupTableWrap"></div>
+    </section>
+
+    <!-- PANEL UNIT SERVICE (KETERANGAN DIBUAT MANDATORY REQUIRED) -->
+    <section class="panel" id="panel-pinjam">
+      <h1 class="page-title">Manajemen Unit Service</h1>
+      <div class="page-sub">Penerimaan unit service dari customer, alokasi unit backup, dan penawaran PO/SO.</div>
+
+      <div class="card">
+        <h3 id="loanFormTitle">Penerimaan Unit Service</h3>
+        <form id="loanForm">
+          <input type="hidden" id="loanEditId">
+
+          <div class="grid-3">
+            <div class="field">
+              <label>Nama Customer</label>
+              <input type="text" id="l_customer" list="customerList" placeholder="Ketik/Pilih Customer" required>
+            </div>
+            <div class="field">
+              <label>Tipe Unit Service (Master Barang)</label>
+              <select id="l_tipeSelect" required></select>
+            </div>
+            <div class="field">
+              <label>Serial Number (SN)</label>
+              <input type="text" id="l_sn" placeholder="SN-88213">
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field">
+              <label>Nomor PO / SO</label>
+              <input type="text" id="l_po" placeholder="PO-SVC-2026-003" oninput="autoCheckPoStatus()">
+            </div>
+            <div class="field">
+              <label>Tanggal PO / SO</label>
+              <input type="date" id="l_tglPo">
+            </div>
+            <div class="field">
+              <label>Tenggang Follow-up PO/SO (Hari)</label>
+              <input type="number" id="l_tenggang" placeholder="14" required>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>Pilih Unit Backup Dipinjamkan (Opsional)</label>
+              <select id="l_backupUnit"></select>
+            </div>
+            <div class="field">
+              <label>Status Service</label>
+              <select id="l_status">
+                <option value="belum">Belum Follow-up PO/SO</option>
+                <option value="analisa">Proses Analisa</option>
+                <option value="sudah">Sudah Follow-up PO/SO</option>
+                <option value="po">Sudah PO/SO</option>
+                <option value="dikerjakan">Sedang Dikerjakan</option>
+                <option value="selesai">Selesai / Dikirim</option>
+                <option value="batal">Batal Service</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>Tanggal Backup Dipinjamkan</label>
+              <input type="date" id="l_tglBackupPinjam">
+            </div>
+            <div class="field">
+              <label>Tanggal Backup Kembali</label>
+              <input type="date" id="l_tglBackupKembali" onchange="autoReturnBackup()">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>Tanggal Masuk Unit Service</label>
+              <input type="date" id="l_tanggal" required>
+            </div>
+            <div class="field">
+              <label>Interval Service Berkala</label>
+              <div style="display:flex; gap:8px;">
+                <input type="number" id="l_intervalNilai" placeholder="6">
+                <select id="l_intervalUnit" style="width:100px;">
+                  <option value="bulan">Bulan</option>
+                  <option value="hari">Hari</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- KETERANGAN / CATATAN SERVICE MANDATORY -->
+          <div class="field">
+            <label>Keterangan / Alasan Batal Service <span style="color:var(--c-red);">* (Wajib Diisi)</span></label>
+            <textarea id="l_catatan" rows="2" placeholder="Tuliskan analisis kerusakan, status pengerjaan, atau alasan pembatalan service..." required></textarea>
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn" id="loanSubmitBtn">Simpan Unit Service</button>
+            <button type="button" class="btn-ghost" id="loanCancelBtn" style="display:none;" onclick="resetLoanForm()">Batal</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap" id="loanTableWrap"></div>
+    </section>
+
+  </main>
+
+<script>
+let units = [], loans = [], backups = [], customers = [], barangs = [];
+let loaded = false;
+const API_URL = 'https://script.google.com/macros/s/AKfycbz9SYATwjDQDQpv0qCLs2kYzgTaFweJzDIIp6zl4UlnU0QxnTiTM2fwvEVZ6rjLOp8GjQ/exec';
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+document.getElementById('toggleBtn').addEventListener('click', ()=>{
+  document.body.classList.toggle('collapsed');
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'laporan') renderReportPanel();
+  });
+});
+
+/* BRAND SETTINGS */
+function initBrandSettings() {
+  const savedName = localStorage.getItem('app_brand_name');
+  const savedLogo = localStorage.getItem('app_brand_logo');
+
+  if(savedName) {
+    document.getElementById('brandNameText').textContent = savedName;
+  }
+  if(savedLogo) {
+    document.getElementById('brandLogoContainer').innerHTML = `<img src="${savedLogo}" class="brand-logo-img" alt="Logo">`;
+  }
+}
+
+function openBrandEditor() {
+  const currentName = document.getElementById('brandNameText').textContent;
+  const newName = prompt('Masukkan Nama Aplikasi Baru:', currentName);
+  if(newName !== null && newName.trim() !== '') {
+    document.getElementById('brandNameText').textContent = newName.trim();
+    localStorage.setItem('app_brand_name', newName.trim());
+  }
+
+  if(confirm('Apakah Anda ingin mengganti Gambar Logo Aplikasi?')) {
+    document.getElementById('logoFileInput').click();
+  }
+}
+
+function handleLogoUpload(input) {
+  if(input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64Img = e.target.result;
+      document.getElementById('brandLogoContainer').innerHTML = `<img src="${base64Img}" class="brand-logo-img" alt="Logo">`;
+      localStorage.setItem('app_brand_logo', base64Img);
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(`${API_URL}?action=getAll`);
+    const json = await res.json();
+    units = json.units || [];
+    loans = json.loans || [];
+    backups = json.backups || [];
+    customers = json.customers || [];
+    barangs = json.barangs || [];
+  } catch(e) {
+    console.error('Fetch error:', e);
+  }
+  loaded = true;
+  initBrandSettings();
+  renderAll();
+}
+
+async function saveToServer(key, data) {
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save', key, data })
+    });
+  } catch(e) {
+    console.error('Save error:', e);
+  }
+}
+
+function syncDropdowns() {
+  const cList = document.getElementById('customerList');
+  cList.innerHTML = customers.map(c => `<option value="${escapeHtml(c.nama)}">`).join('');
+
+  const barangOptions = `<option value="">— Pilih Tipe Barang —</option>` + 
+    barangs.map(b => `<option value="${escapeHtml(b.tipe)}">${escapeHtml(b.tipe)}</option>`).join('');
+
+  document.getElementById('u_tipeSelect').innerHTML = barangOptions;
+  document.getElementById('b_tipeSelect').innerHTML = barangOptions;
+  document.getElementById('l_tipeSelect').innerHTML = barangOptions;
+
+  const availableBackups = backups.filter(b => b.kondisi === 'baik' || b.kondisi === 'Tersedia');
+  document.getElementById('l_backupUnit').innerHTML = `<option value="">— Tidak Meminjam Backup —</option>` +
+    availableBackups.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.kode)} - ${escapeHtml(b.tipeUnit)} (SN: ${escapeHtml(b.sn||'—')})</option>`).join('');
+}
+
+function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'}) : '—'; }
+
+function calcNextDate(dateStr, val, unit) {
+  if(!dateStr) return null;
+  const d = new Date(dateStr);
+  if(isNaN(d.getTime())) return null;
+  const n = parseInt(val, 10);
+  if(isNaN(n)) return null;
+  if(unit === 'hari') d.setDate(d.getDate() + n);
+  else d.setMonth(d.getMonth() + n);
+  return d;
+}
+
+function calcDueDate(dateStr, days) {
+  if(!dateStr) return null;
+  const d = new Date(dateStr);
+  if(isNaN(d.getTime())) return null;
+  const n = parseInt(days, 10);
+  if(isNaN(n)) return null;
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function daysDiff(targetDate) {
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const t = new Date(targetDate);
+  t.setHours(0,0,0,0);
+  return Math.round((t - now) / (1000 * 60 * 60 * 24));
+}
+
+function autoCheckPoStatus() {
+  const poVal = document.getElementById('l_po').value.trim();
+  const statusElem = document.getElementById('l_status');
+  if(poVal !== '' && (statusElem.value === 'belum' || statusElem.value === 'sudah' || statusElem.value === 'analisa')) {
+    statusElem.value = 'po';
+  }
+}
+
+function autoReturnBackup() {
+  const tglKembali = document.getElementById('l_tglBackupKembali').value;
+  const backupId = document.getElementById('l_backupUnit').value;
+  if(tglKembali && backupId) {
+    const bk = backups.find(b => b.id === backupId);
+    if(bk) {
+      bk.kondisi = 'baik';
+      bk.keterangan = 'Unit telah dikembalikan';
+      saveToServer('backups', backups);
+    }
+  }
+}
+
+/* RENDER DASHBOARD & TOP 3 TYPE TERLARIS */
+function renderDashboard() {
+  const totalBaru = units.filter(u => u.kategori === 'baru').length;
+  const totalBatal = loans.filter(l => l.status === 'batal').length;
+  const activeLoans = loans.filter(l => l.status !== 'selesai' && l.status !== 'batal').length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card">
+      <div class="val">${totalBaru}</div>
+      <div class="lbl">Unit Baru Terjual</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">${loans.length}</div>
+      <div class="lbl">Total Order Service</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" style="color:var(--c-red);">${totalBatal}</div>
+      <div class="lbl">Unit Batal Service</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" style="color:var(--primary);">${activeLoans}</div>
+      <div class="lbl">Service On Progress</div>
+    </div>
+  `;
+
+  // CALCULATE TOP 3 TYPES (UNIT BARU & SERVICE)
+  const newTypesCount = {};
+  units.filter(u => u.kategori === 'baru').forEach(u => {
+    const type = u.tipeUnit || 'Lainnya';
+    newTypesCount[type] = (newTypesCount[type] || 0) + 1;
+  });
+
+  const sortedTopNew = Object.entries(newTypesCount)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 3);
+
+  document.getElementById('topNewTypeContainer').innerHTML = sortedTopNew.length === 0 
+    ? `<div style="font-size:12.5px; color:var(--text-muted);">Belum ada data penjualan unit baru.</div>`
+    : sortedTopNew.map((item, idx) => `
+      <div class="top-type-item">
+        <span class="top-rank">#${idx + 1}</span>
+        <span style="flex:1; font-weight:600;">${escapeHtml(item[0])}</span>
+        <span class="badge badge-blue">${item[1]} Unit</span>
+      </div>
+    `).join('');
+
+  const serviceTypesCount = {};
+  loans.forEach(l => {
+    const type = l.tipeUnit || 'Lainnya';
+    serviceTypesCount[type] = (serviceTypesCount[type] || 0) + 1;
+  });
+
+  const sortedTopService = Object.entries(serviceTypesCount)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 3);
+
+  document.getElementById('topServiceTypeContainer').innerHTML = sortedTopService.length === 0 
+    ? `<div style="font-size:12.5px; color:var(--text-muted);">Belum ada data unit service.</div>`
+    : sortedTopService.map((item, idx) => `
+      <div class="top-type-item">
+        <span class="top-rank" style="color:var(--c-green);">#${idx + 1}</span>
+        <span style="flex:1; font-weight:600;">${escapeHtml(item[0])}</span>
+        <span class="badge badge-green">${item[1]} Order</span>
+      </div>
+    `).join('');
+
+  // Batal Service Widget
+  const batalList = loans.filter(l => l.status === 'batal');
+  document.getElementById('cBatalTotal').textContent = batalList.length;
+  document.getElementById('batalList').innerHTML = batalList.length === 0 
+    ? `<div class="empty">Tidak ada unit yang batal service.</div>`
+    : batalList.map(l => `
+      <div class="batal-item">
+        <div class="batal-top">
+          <span>${escapeHtml(l.customer)} — ${escapeHtml(l.tipeUnit)}</span>
+          <span class="badge badge-red">BATAL SERVICE</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+          PO/SO: ${escapeHtml(l.po) || '—'} &bull; Tanggal Masuk: ${fmtDate(l.tanggalPinjam)}
+        </div>
+        <div class="batal-desc">
+          <strong>Alasan Pembatalan:</strong> ${escapeHtml(l.catatan) || 'Tidak ada catatan khusus.'}
+        </div>
+      </div>
+    `).join('');
+
+  // REMINDER PENGECEKAN MAINTENANCE UNIT
+  const rangeVal = document.getElementById('unitReminderDaysSelect').value;
+  let allServiceSchedule = [];
+
+  units.forEach(u => {
+    const next = calcNextDate(u.tanggalPengiriman, u.intervalNilai, u.intervalUnit);
+    if(next) allServiceSchedule.push({ ...u, nextDate: next, diff: daysDiff(next), asal: 'Unit Baru' });
+  });
+
+  loans.forEach(l => {
+    if(l.intervalNilai) {
+      const baseDate = l.tanggalPinjam;
+      const next = calcNextDate(baseDate, l.intervalNilai, l.intervalUnit);
+      if(next) allServiceSchedule.push({ id: l.id, customer: l.customer, tipeUnit: l.tipeUnit, sn: l.sn, tanggalPengiriman: l.tanggalPinjam, nextDate: next, diff: daysDiff(next), asal: 'Unit Service' });
+    }
+  });
+
+  const unitReminders = allServiceSchedule.filter(x => {
+    if(rangeVal === 'all') return true;
+    const maxDays = parseInt(rangeVal, 10);
+    return x.diff <= maxDays;
+  }).sort((a,b) => a.diff - b.diff);
+
+  document.getElementById('cUnitReminder').textContent = unitReminders.length;
+  document.getElementById('unitReminders').innerHTML = unitReminders.length === 0
+    ? `<div class="empty">Tidak ada jadwal maintenance dalam range H-${rangeVal === 'all' ? 'semua' : rangeVal} hari.</div>`
+    : unitReminders.map(r => {
+        let cls = '', statusText = '';
+        if(r.diff < 0) { cls = 'overdue'; statusText = `Lewat ${Math.abs(r.diff)} Hari!`; }
+        else if(r.diff <= 14) { cls = 'soon'; statusText = `H-${r.diff} Hari`; }
+        else { statusText = `H-${r.diff} Hari`; }
+
+        return `
+          <div class="ticket ${cls}">
+            <div>
+              <strong>${escapeHtml(r.customer)}</strong> — ${escapeHtml(r.tipeUnit)} (SN: ${escapeHtml(r.sn)||"—"}) <span class="badge badge-blue">${r.asal}</span><br>
+              <small style="color:var(--text-muted);">Tgl Terpasang/Masuk: ${fmtDate(r.tanggalPengiriman)} &bull; Jadwal Cek: ${fmtDate(r.nextDate)}</small>
+            </div>
+            <div>
+              <span class="badge ${r.diff < 0 ? 'badge-red' : 'badge-blue'}">${statusText}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+  // REMINDER FOLLOW-UP PO SERVICE
+  const loanReminders = loans.filter(l => l.status === 'belum' || l.status === 'sudah' || l.status === 'analisa')
+    .map(l => {
+      const due = calcDueDate(l.tanggalPinjam, l.tenggangWaktu);
+      if(!due) return null;
+      const diff = daysDiff(due);
+      return { ...l, dueDate: due, diff };
+    }).filter(x => x !== null)
+      .sort((a,b) => a.diff - b.diff);
+
+  document.getElementById('cLoanReminder').textContent = loanReminders.length;
+  document.getElementById('loanReminders').innerHTML = loanReminders.length === 0
+    ? `<div class="empty">Tidak ada antrean follow-up PO/SO service.</div>`
+    : loanReminders.map(r => {
+        let cls = '', statusText = '';
+        if(r.diff < 0) { cls = 'overdue'; statusText = `Terlambat ${Math.abs(r.diff)} Hari!`; }
+        else if(r.diff <= 3) { cls = 'soon'; statusText = `Tenggat ${r.diff} Hari`; }
+        else { statusText = `${r.diff} Hari Lagi`; }
+
+        return `
+          <div class="ticket ${cls}">
+            <div>
+              <strong>${escapeHtml(r.customer)}</strong> — ${escapeHtml(r.tipeUnit)}<br>
+              <small style="color:var(--text-muted);">Tgl Masuk: ${fmtDate(r.tanggalPinjam)} &bull; Batas PO: ${fmtDate(r.dueDate)}</small>
+            </div>
+            <div>
+              <span class="badge ${r.diff < 0 ? 'badge-red' : 'badge-blue'}">${statusText}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+}
+
+/* ACTIONS & FORMS */
+
+// 1. MASTER CUSTOMER ACTIONS
+function editCustomer(id) {
+  const item = customers.find(c => c.id === id);
+  if(!item) return;
+  document.getElementById('c_editId').value = item.id;
+  document.getElementById('c_nama').value = item.nama || '';
+  document.getElementById('c_kota').value = item.kota || '';
+  document.getElementById('c_industri').value = item.industri || '';
+  document.getElementById('c_pic').value = item.pic || '';
+  document.getElementById('c_teknisi').value = item.teknisi || '';
+  document.getElementById('c_kontak').value = item.kontak || '';
+
+  document.getElementById('custFormTitle').textContent = 'Edit Data Customer';
+  document.getElementById('custSubmitBtn').textContent = 'Update Customer';
+  document.getElementById('custCancelBtn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetCustForm() {
+  document.getElementById('c_editId').value = '';
+  document.getElementById('custForm').reset();
+  document.getElementById('custFormTitle').textContent = 'Tambah Customer Baru';
+  document.getElementById('custSubmitBtn').textContent = 'Simpan Customer';
+  document.getElementById('custCancelBtn').style.display = 'none';
+}
+
+function deleteCustomer(id) {
+  if(confirm('Yakin ingin menghapus data customer ini?')) {
+    customers = customers.filter(c => c.id !== id);
+    saveToServer('customers', customers);
+    renderAll();
+  }
+}
+
+document.getElementById('custForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const editId = document.getElementById('c_editId').value;
+  const newItem = {
+    id: editId || uid(),
+    nama: document.getElementById('c_nama').value,
+    kota: document.getElementById('c_kota').value,
+    industri: document.getElementById('c_industri').value,
+    pic: document.getElementById('c_pic').value,
+    teknisi: document.getElementById('c_teknisi').value,
+    kontak: document.getElementById('c_kontak').value
+  };
+
+  if(editId) {
+    const idx = customers.findIndex(c => c.id === editId);
+    if(idx !== -1) customers[idx] = newItem;
+  } else {
+    customers.push(newItem);
+  }
+  saveToServer('customers', customers);
+  resetCustForm();
+  renderAll();
+});
+
+// 2. DATA UNIT ACTIONS
+function editUnit(id) {
+  const item = units.find(u => u.id === id);
+  if(!item) return;
+  document.getElementById('unitEditId').value = item.id;
+  document.getElementById('u_kategori').value = item.kategori || 'baru';
+  document.getElementById('u_kode').value = item.kode || '';
+  document.getElementById('u_po').value = item.po || '';
+  document.getElementById('u_tglPo').value = item.tglPo || '';
+  document.getElementById('u_tipeSelect').value = item.tipeUnit || '';
+  document.getElementById('u_sn').value = item.sn || '';
+  document.getElementById('u_customer').value = item.customer || '';
+  document.getElementById('u_tanggal').value = item.tanggalPengiriman || '';
+  document.getElementById('u_intervalNilai').value = item.intervalNilai || '';
+  document.getElementById('u_intervalUnit').value = item.intervalUnit || 'bulan';
+  document.getElementById('u_catatan').value = item.catatan || '';
+
+  document.getElementById('unitFormTitle').textContent = 'Edit Data Unit';
+  document.getElementById('unitSubmitBtn').textContent = 'Update Unit';
+  document.getElementById('unitCancelBtn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetUnitForm() {
+  document.getElementById('unitEditId').value = '';
+  document.getElementById('unitForm').reset();
+  document.getElementById('unitFormTitle').textContent = 'Tambah Data Unit';
+  document.getElementById('unitSubmitBtn').textContent = 'Simpan Unit';
+  document.getElementById('unitCancelBtn').style.display = 'none';
+}
+
+function deleteUnit(id) {
+  if(confirm('Apakah Anda yakin ingin menghapus data unit ini?')) {
+    units = units.filter(u => u.id !== id);
+    saveToServer('units', units);
+    renderAll();
+  }
+}
+
+document.getElementById('unitForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const editId = document.getElementById('unitEditId').value;
+  const newItem = {
+    id: editId || uid(),
+    kategori: document.getElementById('u_kategori').value,
+    kode: document.getElementById('u_kode').value || 'U-' + Math.floor(1000 + Math.random() * 9000),
+    po: document.getElementById('u_po').value,
+    tglPo: document.getElementById('u_tglPo').value,
+    tipeUnit: document.getElementById('u_tipeSelect').value,
+    sn: document.getElementById('u_sn').value,
+    customer: document.getElementById('u_customer').value,
+    tanggalPengiriman: document.getElementById('u_tanggal').value,
+    intervalNilai: document.getElementById('u_intervalNilai').value,
+    intervalUnit: document.getElementById('u_intervalUnit').value,
+    catatan: document.getElementById('u_catatan').value
+  };
+
+  if(editId) {
+    const idx = units.findIndex(u => u.id === editId);
+    if(idx !== -1) units[idx] = newItem;
+  } else {
+    units.push(newItem);
+  }
+  saveToServer('units', units);
+  resetUnitForm();
+  renderAll();
+});
+
+// 3. UNIT BACKUP ACTIONS
+function editBackup(id) {
+  const item = backups.find(b => b.id === id);
+  if(!item) return;
+  document.getElementById('b_editId').value = item.id;
+  document.getElementById('b_kode').value = item.kode || '';
+  document.getElementById('b_tipeSelect').value = item.tipeUnit || '';
+  document.getElementById('b_sn').value = item.sn || '';
+  document.getElementById('b_kondisi').value = item.kondisi || 'baik';
+  document.getElementById('b_keterangan').value = item.keterangan || '';
+
+  document.getElementById('backupFormTitle').textContent = 'Edit Unit Backup';
+  document.getElementById('backupSubmitBtn').textContent = 'Update Backup';
+  document.getElementById('backupCancelBtn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetBackupForm() {
+  document.getElementById('b_editId').value = '';
+  document.getElementById('backupForm').reset();
+  document.getElementById('backupFormTitle').textContent = 'Tambah Unit Backup';
+  document.getElementById('backupSubmitBtn').textContent = 'Simpan Unit Backup';
+  document.getElementById('backupCancelBtn').style.display = 'none';
+}
+
+function deleteBackup(id) {
+  if(confirm('Hapus stok unit backup ini?')) {
+    backups = backups.filter(b => b.id !== id);
+    saveToServer('backups', backups);
+    renderAll();
+  }
+}
+
+document.getElementById('backupForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const editId = document.getElementById('b_editId').value;
+  const newItem = {
+    id: editId || uid(),
+    kode: document.getElementById('b_kode').value || 'BK-' + Math.floor(1000 + Math.random() * 9000),
+    tipeUnit: document.getElementById('b_tipeSelect').value,
+    sn: document.getElementById('b_sn').value,
+    kondisi: document.getElementById('b_kondisi').value,
+    keterangan: document.getElementById('b_keterangan').value
+  };
+
+  if(editId) {
+    const idx = backups.findIndex(b => b.id === editId);
+    if(idx !== -1) backups[idx] = newItem;
+  } else {
+    backups.push(newItem);
+  }
+  saveToServer('backups', backups);
+  resetBackupForm();
+  renderAll();
+});
+
+// 4. UNIT SERVICE ACTIONS
+function editLoan(id) {
+  const item = loans.find(l => l.id === id);
+  if(!item) return;
+  document.getElementById('loanEditId').value = item.id;
+  document.getElementById('l_customer').value = item.customer || '';
+  document.getElementById('l_tipeSelect').value = item.tipeUnit || '';
+  document.getElementById('l_po').value = item.po || '';
+  document.getElementById('l_tglPo').value = item.tglPo || '';
+  document.getElementById('l_sn').value = item.sn || '';
+  document.getElementById('l_backupUnit').value = item.backupUnitId || '';
+  document.getElementById('l_tglBackupPinjam').value = item.tglBackupPinjam || '';
+  document.getElementById('l_tglBackupKembali').value = item.tglBackupKembali || '';
+  document.getElementById('l_tanggal').value = item.tanggalPinjam || '';
+  document.getElementById('l_tenggang').value = item.tenggangWaktu || '';
+  document.getElementById('l_intervalNilai').value = item.intervalNilai || '';
+  document.getElementById('l_intervalUnit').value = item.intervalUnit || 'bulan';
+  document.getElementById('l_status').value = item.status || 'belum';
+  document.getElementById('l_catatan').value = item.catatan || '';
+
+  document.getElementById('loanFormTitle').textContent = 'Edit Data Service';
+  document.getElementById('loanSubmitBtn').textContent = 'Update Data Service';
+  document.getElementById('loanCancelBtn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetLoanForm() {
+  document.getElementById('loanEditId').value = '';
+  document.getElementById('loanForm').reset();
+  document.getElementById('loanFormTitle').textContent = 'Penerimaan Unit Service';
+  document.getElementById('loanSubmitBtn').textContent = 'Simpan Unit Service';
+  document.getElementById('loanCancelBtn').style.display = 'none';
+}
+
+function deleteLoan(id) {
+  if(confirm('Apakah Anda yakin ingin menghapus data order service ini?')) {
+    loans = loans.filter(l => l.id !== id);
+    saveToServer('loans', loans);
+    renderAll();
+  }
+}
+
+document.getElementById('loanForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const editId = document.getElementById('loanEditId').value;
+  const backupId = document.getElementById('l_backupUnit').value;
+  const custName = document.getElementById('l_customer').value;
+  const tglKembali = document.getElementById('l_tglBackupKembali').value;
+
+  const newItem = {
+    id: editId || uid(),
+    customer: custName,
+    tipeUnit: document.getElementById('l_tipeSelect').value,
+    po: document.getElementById('l_po').value,
+    tglPo: document.getElementById('l_tglPo').value,
+    sn: document.getElementById('l_sn').value,
+    backupUnitId: backupId,
+    tglBackupPinjam: document.getElementById('l_tglBackupPinjam').value,
+    tglBackupKembali: tglKembali,
+    tanggalPinjam: document.getElementById('l_tanggal').value,
+    tenggangWaktu: document.getElementById('l_tenggang').value,
+    intervalNilai: document.getElementById('l_intervalNilai').value,
+    intervalUnit: document.getElementById('l_intervalUnit').value,
+    status: document.getElementById('l_status').value,
+    catatan: document.getElementById('l_catatan').value
+  };
+
+  if(backupId) {
+    const bk = backups.find(b => b.id === backupId);
+    if(bk) {
+      if(tglKembali) {
+        bk.kondisi = 'baik';
+        bk.keterangan = 'Unit telah dikembalikan dari ' + custName;
+      } else {
+        bk.kondisi = 'DIPINJAMKAN';
+        bk.keterangan = 'Dipinjamkan di ' + custName;
+      }
+      saveToServer('backups', backups);
+    }
+  }
+
+  if(editId) {
+    const idx = loans.findIndex(l => l.id === editId);
+    if(idx !== -1) loans[idx] = newItem;
+  } else {
+    loans.push(newItem);
+  }
+  saveToServer('loans', loans);
+  resetLoanForm();
+  renderAll();
+});
+
+/* RENDER PANEL LAPORAN */
+function renderReportPanel() {
+  const katVal = document.getElementById('repKategoriSelect').value;
+  const startVal = document.getElementById('repStartDate').value;
+  const endVal = document.getElementById('repEndDate').value;
+
+  const startDate = startVal ? new Date(startVal + 'T00:00:00') : null;
+  const endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
+
+  document.getElementById('legNew').style.display = (katVal === 'all' || katVal === 'baru') ? 'flex' : 'none';
+  document.getElementById('legService').style.display = (katVal === 'all' || katVal === 'service') ? 'flex' : 'none';
+
+  document.getElementById('cardBarNew').style.display = (katVal === 'all' || katVal === 'baru') ? 'block' : 'none';
+  document.getElementById('cardBarService').style.display = (katVal === 'all' || katVal === 'service') ? 'block' : 'none';
+
+  const filteredNew = units.filter(u => {
+    if(u.kategori !== 'baru') return false;
+    const d = new Date(u.tanggalPengiriman);
+    if(startDate && d < startDate) return false;
+    if(endDate && d > endDate) return false;
+    return true;
+  });
+
+  const filteredService = loans.filter(l => {
+    const d = new Date(l.tanggalPinjam);
+    if(startDate && d < startDate) return false;
+    if(endDate && d > endDate) return false;
+    return true;
+  });
+
+  document.getElementById('reportStatsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="val" style="color:var(--primary);">${filteredNew.length}</div>
+      <div class="lbl">Unit Baru Terjual</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" style="color:var(--c-green);">${filteredService.filter(l => l.status === 'selesai').length}</div>
+      <div class="lbl">Service Selesai</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" style="color:var(--c-red);">${filteredService.filter(l => l.status === 'batal').length}</div>
+      <div class="lbl">Batal Service</div>
+    </div>
+  `;
+
+  // 1. Diagram Garis
+  const periods = new Set();
+  const newByPeriod = {};
+  const serviceByPeriod = {};
+
+  if(katVal === 'all' || katVal === 'baru') {
+    filteredNew.forEach(u => {
+      if(!u.tanggalPengiriman) return;
+      const key = u.tanggalPengiriman.substring(0, 7);
+      periods.add(key);
+      newByPeriod[key] = (newByPeriod[key] || 0) + 1;
+    });
+  }
+
+  if(katVal === 'all' || katVal === 'service') {
+    filteredService.forEach(l => {
+      if(!l.tanggalPinjam) return;
+      const key = l.tanggalPinjam.substring(0, 7);
+      periods.add(key);
+      serviceByPeriod[key] = (serviceByPeriod[key] || 0) + 1;
+    });
+  }
+
+  const sortedPeriods = Array.from(periods).sort();
+  drawLineChart(sortedPeriods, newByPeriod, serviceByPeriod, katVal);
+
+  // 2. Diagram Batang Baru
+  if(katVal === 'all' || katVal === 'baru') {
+    const newTypeCounts = {};
+    filteredNew.forEach(u => {
+      const type = u.tipeUnit || 'Lainnya';
+      newTypeCounts[type] = (newTypeCounts[type] || 0) + 1;
+    });
+    drawBarChart('barNewCanvas', newTypeCounts, '#2563eb');
+  }
+
+  // 3. Diagram Batang Service
+  if(katVal === 'all' || katVal === 'service') {
+    const serviceTypeCounts = {};
+    filteredService.forEach(l => {
+      const type = l.tipeUnit || 'Lainnya';
+      serviceTypeCounts[type] = (serviceTypeCounts[type] || 0) + 1;
+    });
+    drawBarChart('barServiceCanvas', serviceTypeCounts, '#16a34a');
+  }
+
+  let reportRows = [];
+  if(katVal === 'all' || katVal === 'baru') {
+    reportRows.push(...filteredNew.map(u => ({ tgl: u.tanggalPengiriman, jenis: 'Penjualan Baru', customer: u.customer, po: u.po, tipe: u.tipeUnit, sn: u.sn, status: 'TERKIRIM' })));
+  }
+  if(katVal === 'all' || katVal === 'service') {
+    reportRows.push(...filteredService.map(l => ({ tgl: l.tanggalPinjam, jenis: 'Unit Service', customer: l.customer, po: l.po, tipe: l.tipeUnit, sn: l.sn, status: l.status.toUpperCase() })));
+  }
+  reportRows.sort((a,b) => new Date(b.tgl) - new Date(a.tgl));
+
+  document.getElementById('reportTableWrap').innerHTML = reportRows.length === 0
+    ? `<div class="empty">Tidak ada data transaksi pada periode terpilih.</div>`
+    : `<table>
+        <thead><tr><th>Tanggal</th><th>Jenis Transaksi</th><th>Customer</th><th>No PO/SO</th><th>Tipe Unit</th><th>SN</th><th>Status</th></tr></thead>
+        <tbody>${reportRows.map(r => `<tr>
+          <td>${fmtDate(r.tgl)}</td>
+          <td><span class="badge ${r.jenis==='Penjualan Baru'?'badge-blue':'badge-green'}">${r.jenis}</span></td>
+          <td><strong>${escapeHtml(r.customer)}</strong></td>
+          <td>${escapeHtml(r.po)||"—"}</td>
+          <td>${escapeHtml(r.tipe)}</td>
+          <td>${escapeHtml(r.sn)||"—"}</td>
+          <td><span class="badge ${r.status==='BATAL'?'badge-red':'badge-blue'}">${r.status}</span></td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+}
+
+function drawLineChart(periods, newData, serviceData, kategoriMode) {
+  const canvas = document.getElementById('lineChartCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const w = rect.width;
+  const h = rect.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  if(periods.length === 0) {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '13px Plus Jakarta Sans';
+    ctx.textAlign = 'center';
+    ctx.fillText('Tidak ada data transaksi untuk ditampilkan pada diagram garis.', w/2, h/2);
+    return;
+  }
+
+  const padding = { top: 30, right: 30, bottom: 40, left: 40 };
+  const graphW = w - padding.left - padding.right;
+  const graphH = h - padding.top - padding.bottom;
+
+  let maxVal = 1;
+  periods.forEach(p => {
+    if(kategoriMode === 'all' || kategoriMode === 'baru') maxVal = Math.max(maxVal, newData[p] || 0);
+    if(kategoriMode === 'all' || kategoriMode === 'service') maxVal = Math.max(maxVal, serviceData[p] || 0);
+  });
+  maxVal = Math.ceil(maxVal * 1.2);
+
+  const gridCount = 4;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px JetBrains Mono';
+  ctx.textAlign = 'right';
+
+  for(let i = 0; i <= gridCount; i++) {
+    const y = padding.top + (graphH / gridCount) * i;
+    const val = Math.round(maxVal - (maxVal / gridCount) * i);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(w - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(val, padding.left - 8, y + 4);
+  }
+
+  const stepX = periods.length > 1 ? graphW / (periods.length - 1) : graphW / 2;
+  ctx.textAlign = 'center';
+
+  const pointsNew = [];
+  const pointsService = [];
+
+  periods.forEach((p, index) => {
+    const x = periods.length > 1 ? padding.left + stepX * index : w / 2;
+
+    const parts = p.split('-');
+    const labelStr = parts.length === 2 ? `${parts[1]}/${parts[0].slice(2)}` : p;
+    ctx.fillText(labelStr, x, h - 12);
+
+    if(kategoriMode === 'all' || kategoriMode === 'baru') {
+      const val = newData[p] || 0;
+      const y = padding.top + graphH - (val / maxVal) * graphH;
+      pointsNew.push({ x, y, val });
+    }
+
+    if(kategoriMode === 'all' || kategoriMode === 'service') {
+      const val = serviceData[p] || 0;
+      const y = padding.top + graphH - (val / maxVal) * graphH;
+      pointsService.push({ x, y, val });
+    }
+  });
+
+  function drawLinePath(points, strokeColor, fillColor) {
+    if(points.length === 0) return;
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, padding.top + graphH);
+    points.forEach(pt => ctx.lineTo(pt.x, pt.y));
+    ctx.lineTo(points[points.length - 1].x, padding.top + graphH);
+    ctx.closePath();
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for(let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    points.forEach(pt => {
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 11px Plus Jakarta Sans';
+      ctx.textAlign = 'center';
+      ctx.fillText(pt.val, pt.x, pt.y - 10);
+    });
+  }
+
+  if(kategoriMode === 'all' || kategoriMode === 'baru') {
+    drawLinePath(pointsNew, '#2563eb', 'rgba(37, 99, 235, 0.08)');
+  }
+  if(kategoriMode === 'all' || kategoriMode === 'service') {
+    drawLinePath(pointsService, '#16a34a', 'rgba(22, 163, 74, 0.08)');
+  }
+}
+
+function drawBarChart(canvasId, typeDataMap, barColor) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const w = rect.width;
+  const h = rect.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const labels = Object.keys(typeDataMap);
+  if(labels.length === 0) {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '13px Plus Jakarta Sans';
+    ctx.textAlign = 'center';
+    ctx.fillText('Belum ada data penjualan tipe unit untuk periode ini.', w/2, h/2);
+    return;
+  }
+
+  const padding = { top: 30, right: 30, bottom: 50, left: 40 };
+  const graphW = w - padding.left - padding.right;
+  const graphH = h - padding.top - padding.bottom;
+
+  let maxVal = Math.max(...Object.values(typeDataMap), 1);
+  maxVal = Math.ceil(maxVal * 1.25);
+
+  const gridCount = 4;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px JetBrains Mono';
+  ctx.textAlign = 'right';
+
+  for(let i = 0; i <= gridCount; i++) {
+    const y = padding.top + (graphH / gridCount) * i;
+    const val = Math.round(maxVal - (maxVal / gridCount) * i);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(w - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(val, padding.left - 8, y + 4);
+  }
+
+  const barGap = 20;
+  const barWidth = Math.min(60, (graphW - (labels.length + 1) * barGap) / labels.length);
+  const totalBarWidth = labels.length * barWidth + (labels.length - 1) * barGap;
+  const startX = padding.left + (graphW - totalBarWidth) / 2;
+
+  labels.forEach((label, idx) => {
+    const val = typeDataMap[label];
+    const barH = (val / maxVal) * graphH;
+    const x = startX + idx * (barWidth + barGap);
+    const y = padding.top + graphH - barH;
+
+    ctx.fillStyle = barColor;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(x, y, barWidth, barH, [6, 6, 0, 0]);
+    } else {
+      ctx.rect(x, y, barWidth, barH);
+    }
+    ctx.fill();
+
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 12px Plus Jakarta Sans';
+    ctx.textAlign = 'center';
+    ctx.fillText(val, x + barWidth / 2, y - 8);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px Plus Jakarta Sans';
+    ctx.save();
+    ctx.translate(x + barWidth / 2, padding.top + graphH + 16);
+    const displayLabel = label.length > 12 ? label.substring(0, 10) + '..' : label;
+    ctx.fillText(displayLabel, 0, 0);
+    ctx.restore();
+  });
+}
+
+function resetReportDates() {
+  document.getElementById('repKategoriSelect').value = 'all';
+  document.getElementById('repStartDate').value = '';
+  document.getElementById('repEndDate').value = '';
+  renderReportPanel();
+}
+
+function exportReportData() {
+  const katVal = document.getElementById('repKategoriSelect').value;
+  const startVal = document.getElementById('repStartDate').value;
+  const endVal = document.getElementById('repEndDate').value;
+  const startDate = startVal ? new Date(startVal + 'T00:00:00') : null;
+  const endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
+
+  const filteredNew = units.filter(u => {
+    if(u.kategori !== 'baru') return false;
+    const d = new Date(u.tanggalPengiriman);
+    return (!startDate || d >= startDate) && (!endDate || d <= endDate);
+  });
+
+  const filteredService = loans.filter(l => {
+    const d = new Date(l.tanggalPinjam);
+    return (!startDate || d >= startDate) && (!endDate || d <= endDate);
+  });
+
+  let csv = "Tanggal,Jenis Transaksi,Customer,No PO/SO,Tipe Unit,SN,Status\n";
+  if(katVal === 'all' || katVal === 'baru') {
+    filteredNew.forEach(u => {
+      csv += `"${u.tanggalPengiriman}","Penjualan Baru","${u.customer}","${u.po||''}","${u.tipeUnit}","${u.sn||''}","TERKIRIM"\n`;
+    });
+  }
+  if(katVal === 'all' || katVal === 'service') {
+    filteredService.forEach(l => {
+      csv += `"${l.tanggalPinjam}","Unit Service","${l.customer}","${l.po||''}","${l.tipeUnit}","${l.sn||''}","${l.status.toUpperCase()}"\n`;
+    });
+  }
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `Laporan_LineChart_${startVal||'Awal'}_s.d_${endVal||'Akhir'}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function renderTables() {
+  // Master Customer Table
+  document.getElementById('custTableWrap').innerHTML = customers.length === 0 
+    ? `<div class="empty">Belum ada data customer terdaftar.</div>`
+    : `<table>
+        <thead><tr><th>Nama Customer</th><th>Daerah / Kota</th><th>Industri</th><th>PIC Customer</th><th>PIC Teknisi Kantor</th><th>Kontak</th><th>Aksi</th></tr></thead>
+        <tbody>${customers.map(c => `<tr>
+          <td><strong>${escapeHtml(c.nama)}</strong></td>
+          <td><span class="badge badge-blue">${escapeHtml(c.kota)||"—"}</span></td>
+          <td>${escapeHtml(c.industri)||"—"}</td>
+          <td>${escapeHtml(c.pic)||"—"}</td>
+          <td><strong>${escapeHtml(c.teknisi)||"—"}</strong></td>
+          <td>${escapeHtml(c.kontak)||"—"}</td>
+          <td>
+            <button class="act-btn act-edit" onclick="editCustomer('${c.id}')">Edit</button>
+            <button class="act-btn act-del" onclick="deleteCustomer('${c.id}')">Hapus</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+  // Master Barang Table
+  document.getElementById('barangTableWrap').innerHTML = barangs.length === 0 
+    ? `<div class="empty">Belum ada tipe barang terdaftar.</div>`
+    : `<table>
+        <thead><tr><th>Tipe Unit</th><th>Merk</th><th>Kategori</th><th>Spesifikasi</th></tr></thead>
+        <tbody>${barangs.map(b => `<tr>
+          <td><strong>${escapeHtml(b.tipe)}</strong></td>
+          <td>${escapeHtml(b.merk)||"—"}</td>
+          <td><span class="badge badge-blue">${escapeHtml(b.kategori)}</span></td>
+          <td>${escapeHtml(b.spesifikasi)||"—"}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+  // Data Unit Table
+  document.getElementById('unitTableWrap').innerHTML = units.length === 0 
+    ? `<div class="empty">Belum ada data unit terdaftar.</div>`
+    : `<table>
+        <thead><tr><th>Kode</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Kategori</th><th>Tipe Unit</th><th>SN</th><th>Customer</th><th>Aksi</th></tr></thead>
+        <tbody>${units.map(u => `<tr>
+          <td><span class="badge badge-blue">${escapeHtml(u.kode)}</span></td>
+          <td>${escapeHtml(u.po)||"—"}</td>
+          <td>${fmtDate(u.tglPo)}</td>
+          <td>${u.kategori==='baru'?'Pembelian Baru':'Service'}</td>
+          <td><strong>${escapeHtml(u.tipeUnit)}</strong></td>
+          <td>${escapeHtml(u.sn)||"—"}</td>
+          <td>${escapeHtml(u.customer)}</td>
+          <td>
+            <button class="act-btn act-edit" onclick="editUnit('${u.id}')">Edit</button>
+            <button class="act-btn act-del" onclick="deleteUnit('${u.id}')">Hapus</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+  // Unit Backup Table
+  document.getElementById('backupTableWrap').innerHTML = backups.length === 0 
+    ? `<div class="empty">Belum ada data unit backup stok.</div>`
+    : `<table>
+        <thead><tr><th>Kode Backup</th><th>Tipe Unit</th><th>SN</th><th>Kondisi Status</th><th>Keterangan / Lokasi Peminjaman</th><th>Aksi</th></tr></thead>
+        <tbody>${backups.map(b => `<tr>
+          <td><span class="badge badge-blue">${escapeHtml(b.kode)}</span></td>
+          <td><strong>${escapeHtml(b.tipeUnit)}</strong></td>
+          <td>${escapeHtml(b.sn)||"—"}</td>
+          <td><span class="badge ${b.kondisi==='DIPINJAMKAN'||b.kondisi==='dipinjam'?'badge-amber':b.kondisi==='baik'||b.kondisi==='Tersedia'?'badge-green':'badge-red'}">${escapeHtml(b.kondisi).toUpperCase()}</span></td>
+          <td>${escapeHtml(b.keterangan)||"—"}</td>
+          <td>
+            <button class="act-btn act-edit" onclick="editBackup('${b.id}')">Edit</button>
+            <button class="act-btn act-del" onclick="deleteBackup('${b.id}')">Hapus</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+  // Unit Service Table
+  document.getElementById('loanTableWrap').innerHTML = loans.length === 0 
+    ? `<div class="empty">Belum ada data unit service.</div>`
+    : `<table>
+        <thead><tr><th>Customer</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Tipe Unit</th><th>Tgl Masuk</th><th>Backup Dipinjam</th><th>Tgl Pinjam &amp; Kembali</th><th>Status Service</th><th>Aksi</th></tr></thead>
+        <tbody>${loans.map(l => {
+          const bk = backups.find(b => b.id === l.backupUnitId);
+          const bkInfo = bk ? `${bk.kode} (${bk.tipeUnit})` : '—';
+          const tglBk = (l.tglBackupPinjam || l.tglBackupKembali) ? `${fmtDate(l.tglBackupPinjam)} s.d ${fmtDate(l.tglBackupKembali)}` : '—';
+
+          let statusLabel = l.status ? l.status.toUpperCase() : 'BELUM';
+          if(l.status === 'analisa') statusLabel = 'PROSES ANALISA';
+          if(l.status === 'dikerjakan') statusLabel = 'SEDANG DIKERJAKAN';
+          if(l.status === 'po') statusLabel = 'SUDAH PO/SO';
+
+          return `<tr>
+            <td><strong>${escapeHtml(l.customer)}</strong></td>
+            <td>${escapeHtml(l.po)||"—"}</td>
+            <td>${fmtDate(l.tglPo)}</td>
+            <td>${escapeHtml(l.tipeUnit)}</td>
+            <td>${fmtDate(l.tanggalPinjam)}</td>
+            <td>${escapeHtml(bkInfo)}</td>
+            <td><small>${tglBk}</small></td>
+            <td><span class="badge ${l.status==='batal'?'badge-red':l.status==='selesai'?'badge-green':l.status==='po'||l.status==='dikerjakan'||l.status==='analisa'?'badge-amber':'badge-blue'}">${statusLabel}</span></td>
+            <td>
+              <button class="act-btn act-edit" onclick="editLoan('${l.id}')">Edit</button>
+              <button class="act-btn act-del" onclick="deleteLoan('${l.id}')">Hapus</button>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+}
+
+function renderAll() {
+  if(!loaded) return;
+  syncDropdowns();
+  renderDashboard();
+  renderReportPanel();
+  renderTables();
+}
+
+window.addEventListener('resize', () => {
+  if(document.getElementById('panel-laporan').classList.contains('active')) {
+    renderReportPanel();
+  }
+});
+
+loadData();
+</script>
+</body>
+</html>
