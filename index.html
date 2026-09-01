@@ -1032,7 +1032,6 @@ function syncDropdowns(currentSelectedBackupId = '') {
   document.getElementById('b_tipeSelect').innerHTML = barangOptions;
   document.getElementById('l_tipeSelect').innerHTML = barangOptions;
 
-  // Sertakan unit yang kondisinya 'baik' / 'Tersedia', ATAU unit yang saat ini sedang terpilih di transaksi ini
   const availableBackups = backups.filter(b => 
     b.kondisi === 'baik' || 
     b.kondisi === 'Tersedia' || 
@@ -1090,7 +1089,7 @@ function autoReturnBackup() {
     const bk = backups.find(b => b.id === backupId);
     if(bk) {
       bk.kondisi = 'baik';
-      bk.keterangan = 'Unit telah dikembalikan';
+      bk.keterangan = ''; // Keterangan dikosongkan otomatis saat kembali
       saveToServer('backups', backups);
     }
   }
@@ -1507,7 +1506,6 @@ function editLoan(id) {
   const item = loans.find(l => l.id === id);
   if(!item) return;
 
-  // PERBAIKAN: Refresh dropdown agar backup unit yang sedang dipinjam oleh ID ini ikut tampil
   syncDropdowns(item.backupUnitId || '');
 
   document.getElementById('loanEditId').value = item.id;
@@ -1549,7 +1547,7 @@ async function deleteLoan(id) {
       const bk = backups.find(b => b.id === item.backupUnitId);
       if(bk) {
         bk.kondisi = 'baik';
-        bk.keterangan = 'Tersedia di workshop';
+        bk.keterangan = ''; // Kosongkan keterangan saat dihapus
         saveToServer('backups', backups);
       }
     }
@@ -1566,14 +1564,14 @@ document.getElementById('loanForm').addEventListener('submit', async (e) => {
   const custName = document.getElementById('l_customer').value;
   const tglKembali = document.getElementById('l_tglBackupKembali').value;
 
-  // Jika sebelumnya ada unit backup yang dipinjam lalu diganti/dilepas, kembalikan status backup lama ke 'baik'
+  // Jika sebelumnya ada unit backup yang dipinjam lalu diganti/dilepas
   if(editId) {
     const oldLoan = loans.find(l => l.id === editId);
     if(oldLoan && oldLoan.backupUnitId && oldLoan.backupUnitId !== backupId) {
       const oldBk = backups.find(b => b.id === oldLoan.backupUnitId);
       if(oldBk) {
         oldBk.kondisi = 'baik';
-        oldBk.keterangan = 'Tersedia di workshop';
+        oldBk.keterangan = ''; // Kosongkan keterangan
         saveToServer('backups', backups);
       }
     }
@@ -1603,7 +1601,7 @@ document.getElementById('loanForm').addEventListener('submit', async (e) => {
     if(bk) {
       if(tglKembali) {
         bk.kondisi = 'baik';
-        bk.keterangan = 'Unit telah dikembalikan dari ' + custName;
+        bk.keterangan = ''; // Keterangan otomatis dihapus saat kembali
       } else {
         bk.kondisi = 'DIPINJAMKAN';
         bk.keterangan = 'Dipinjamkan di ' + custName;
@@ -1619,8 +1617,16 @@ document.getElementById('loanForm').addEventListener('submit', async (e) => {
     loans.push(newItem);
   }
 
-  // AUTO-MASUK KE DATA UNIT SAAT TANGGAL PENGIRIMAN UNIT SERVICE DIISI
-  if(newItem.tglKirimUnit) {
+  // AUTO-MASUK KE DATA UNIT SAAT TANGGAL PENGIRIMAN DIISI
+  if(newItem.status === 'batal') {
+    // Jika status Batal Service, pastikan tidak ada di Data Unit
+    const existingIdx = units.findIndex(u => u.sourceLoanId === newItem.id);
+    if(existingIdx !== -1) {
+      units.splice(existingIdx, 1);
+      saveToServer('units', units);
+    }
+  } else if(newItem.tglKirimUnit) {
+    // Masukkan/Update ke Data Unit hanya jika bukan BATAL
     const existingIdx = units.findIndex(u => u.sourceLoanId === newItem.id);
     const unitData = {
       id: existingIdx !== -1 ? units[existingIdx].id : uid(),
@@ -2107,6 +2113,7 @@ function renderTables() {
           if(l.status === 'dikerjakan') statusLabel = 'SEDANG DIKERJAKAN';
           if(l.status === 'po') statusLabel = 'SUDAH PO/SO';
 
+          // Tgl Kirim hanya menampilkan tanggal (tanpa label "DI DATA UNIT")
           return `<tr>
             <td><strong>${escapeHtml(l.customer)}</strong></td>
             <td>${escapeHtml(l.po)||"—"}</td>
@@ -2114,7 +2121,7 @@ function renderTables() {
             <td>${escapeHtml(l.tipeUnit)}</td>
             <td><span class="badge badge-blue">${escapeHtml(l.sn)||"—"}</span></td>
             <td>${fmtDate(l.tanggalPinjam)}</td>
-            <td>${l.tglKirimUnit ? `${fmtDate(l.tglKirimUnit)} <span class="badge badge-green" style="font-size:10px;">DI DATA UNIT</span>` : '—'}</td>
+            <td>${l.tglKirimUnit ? fmtDate(l.tglKirimUnit) : '—'}</td>
             <td>${escapeHtml(bkInfo)}</td>
             <td><small>${tglBk}</small></td>
             <td><span class="badge ${l.status==='batal'?'badge-red':l.status==='selesai'?'badge-green':l.status==='po'||l.status==='dikerjakan'||l.status==='analisa'?'badge-amber':'badge-blue'}">${statusLabel}</span></td>
