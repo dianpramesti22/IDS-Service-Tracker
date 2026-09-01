@@ -1971,7 +1971,7 @@ function exportReportData() {
 }
 
 function renderTables() {
-  // Master Customer Table (WITH EDIT & DELETE)
+  // Master Customer Table
   document.getElementById('custTableWrap').innerHTML = customers.length === 0 
     ? `<div class="empty">Belum ada data customer terdaftar.</div>`
     : `<table>
@@ -1990,7 +1990,7 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Master Barang Table (WITH EDIT & DELETE)
+  // Master Barang Table
   document.getElementById('barangTableWrap').innerHTML = barangs.length === 0 
     ? `<div class="empty">Belum ada tipe barang terdaftar.</div>`
     : `<table>
@@ -2007,7 +2007,7 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Data Unit Table (WITH EDIT & DELETE)
+  // Data Unit Table
   document.getElementById('unitTableWrap').innerHTML = units.length === 0 
     ? `<div class="empty">Belum ada data unit terdaftar.</div>`
     : `<table>
@@ -2027,7 +2027,7 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Unit Backup Table (WITH EDIT & DELETE)
+  // Unit Backup Table
   document.getElementById('backupTableWrap').innerHTML = backups.length === 0 
     ? `<div class="empty">Belum ada data unit backup stok.</div>`
     : `<table>
@@ -2045,11 +2045,11 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Unit Service Table (WITH EDIT & DELETE)
+  // Unit Service Table (UPDATED: MENAMPILKAN KOLOM SN & KETERANGAN)
   document.getElementById('loanTableWrap').innerHTML = loans.length === 0 
     ? `<div class="empty">Belum ada data unit service.</div>`
     : `<table>
-        <thead><tr><th>Customer</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Tipe Unit</th><th>Tgl Masuk</th><th>Tgl Kirim</th><th>Backup Dipinjam</th><th>Tgl Pinjam &amp; Kembali</th><th>Status Service</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>Customer</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Tipe Unit</th><th>SN</th><th>Tgl Masuk</th><th>Tgl Kirim</th><th>Backup Dipinjam</th><th>Tgl Pinjam &amp; Kembali</th><th>Status Service</th><th>Keterangan</th><th>Aksi</th></tr></thead>
         <tbody>${loans.map(l => {
           const bk = backups.find(b => b.id === l.backupUnitId);
           const bkInfo = bk ? `${bk.kode} (${bk.tipeUnit})` : '—';
@@ -2065,11 +2065,13 @@ function renderTables() {
             <td>${escapeHtml(l.po)||"—"}</td>
             <td>${fmtDate(l.tglPo)}</td>
             <td>${escapeHtml(l.tipeUnit)}</td>
+            <td><span class="badge badge-blue">${escapeHtml(l.sn)||"—"}</span></td>
             <td>${fmtDate(l.tanggalPinjam)}</td>
             <td>${l.tglKirimUnit ? `${fmtDate(l.tglKirimUnit)} <span class="badge badge-green" style="font-size:10px;">DI DATA UNIT</span>` : '—'}</td>
             <td>${escapeHtml(bkInfo)}</td>
             <td><small>${tglBk}</small></td>
             <td><span class="badge ${l.status==='batal'?'badge-red':l.status==='selesai'?'badge-green':l.status==='po'||l.status==='dikerjakan'||l.status==='analisa'?'badge-amber':'badge-blue'}">${statusLabel}</span></td>
+            <td><small style="color:var(--text-main);">${escapeHtml(l.catatan)||"—"}</small></td>
             <td>
               <button class="act-btn act-edit" onclick="editLoan('${l.id}')">Edit</button>
               <button class="act-btn act-del" onclick="deleteLoan('${l.id}')">Hapus</button>
