@@ -1021,7 +1021,7 @@ async function saveToServer(key, data) {
   }
 }
 
-function syncDropdowns() {
+function syncDropdowns(currentSelectedBackupId = '') {
   const cList = document.getElementById('customerList');
   cList.innerHTML = customers.map(c => `<option value="${escapeHtml(c.nama)}">`).join('');
 
@@ -1032,7 +1032,13 @@ function syncDropdowns() {
   document.getElementById('b_tipeSelect').innerHTML = barangOptions;
   document.getElementById('l_tipeSelect').innerHTML = barangOptions;
 
-  const availableBackups = backups.filter(b => b.kondisi === 'baik' || b.kondisi === 'Tersedia');
+  // Sertakan unit yang kondisinya 'baik' / 'Tersedia', ATAU unit yang saat ini sedang terpilih di transaksi ini
+  const availableBackups = backups.filter(b => 
+    b.kondisi === 'baik' || 
+    b.kondisi === 'Tersedia' || 
+    b.id === currentSelectedBackupId
+  );
+
   document.getElementById('l_backupUnit').innerHTML = `<option value="">— Tidak Meminjam Backup —</option>` +
     availableBackups.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.tipeUnit)} (SN: ${escapeHtml(b.sn||'—')})</option>`).join('');
 }
@@ -1500,6 +1506,10 @@ document.getElementById('backupForm').addEventListener('submit', async (e) => {
 function editLoan(id) {
   const item = loans.find(l => l.id === id);
   if(!item) return;
+
+  // PERBAIKAN: Refresh dropdown agar backup unit yang sedang dipinjam oleh ID ini ikut tampil
+  syncDropdowns(item.backupUnitId || '');
+
   document.getElementById('loanEditId').value = item.id;
   document.getElementById('l_customer').value = item.customer || '';
   document.getElementById('l_tipeSelect').value = item.tipeUnit || '';
@@ -1529,10 +1539,20 @@ function resetLoanForm() {
   document.getElementById('loanFormTitle').textContent = 'Penerimaan Unit Service';
   document.getElementById('loanSubmitBtn').textContent = 'Simpan Unit Service';
   document.getElementById('loanCancelBtn').style.display = 'none';
+  syncDropdowns();
 }
 
 async function deleteLoan(id) {
   if(confirm('Apakah Anda yakin ingin menghapus data order service ini?')) {
+    const item = loans.find(l => l.id === id);
+    if(item && item.backupUnitId) {
+      const bk = backups.find(b => b.id === item.backupUnitId);
+      if(bk) {
+        bk.kondisi = 'baik';
+        bk.keterangan = 'Tersedia di workshop';
+        saveToServer('backups', backups);
+      }
+    }
     loans = loans.filter(l => l.id !== id);
     renderAll();
     await saveToServer('loans', loans);
@@ -1545,6 +1565,19 @@ document.getElementById('loanForm').addEventListener('submit', async (e) => {
   const backupId = document.getElementById('l_backupUnit').value;
   const custName = document.getElementById('l_customer').value;
   const tglKembali = document.getElementById('l_tglBackupKembali').value;
+
+  // Jika sebelumnya ada unit backup yang dipinjam lalu diganti/dilepas, kembalikan status backup lama ke 'baik'
+  if(editId) {
+    const oldLoan = loans.find(l => l.id === editId);
+    if(oldLoan && oldLoan.backupUnitId && oldLoan.backupUnitId !== backupId) {
+      const oldBk = backups.find(b => b.id === oldLoan.backupUnitId);
+      if(oldBk) {
+        oldBk.kondisi = 'baik';
+        oldBk.keterangan = 'Tersedia di workshop';
+        saveToServer('backups', backups);
+      }
+    }
+  }
 
   const newItem = {
     id: editId || uid(),
@@ -2059,14 +2092,13 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Unit Service Table (HANYA MENAMPILKAN TIPE UNIT & SN DIPINJAMKAN)
+  // Unit Service Table
   document.getElementById('loanTableWrap').innerHTML = loans.length === 0 
     ? `<div class="empty">Belum ada data unit service.</div>`
     : `<table>
         <thead><tr><th>Customer</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Tipe Unit</th><th>SN</th><th>Tgl Masuk</th><th>Tgl Kirim</th><th>Backup Dipinjam</th><th>Tgl Pinjam &amp; Kembali</th><th>Status Service</th><th>Keterangan</th><th>Aksi</th></tr></thead>
         <tbody>${loans.map(l => {
           const bk = backups.find(b => b.id === l.backupUnitId);
-          // Hanya mengambil Tipe Unit dan SN tanpa kode backup (BK-...)
           const bkInfo = bk ? `${bk.tipeUnit} (SN: ${bk.sn || '—'})` : '—';
           const tglBk = (l.tglBackupPinjam || l.tglBackupKembali) ? `${fmtDate(l.tglBackupPinjam)} s.d ${fmtDate(l.tglBackupKembali)}` : '—';
 
