@@ -322,7 +322,7 @@
   .ticket.overdue { border-left-color: var(--c-red); background: var(--c-red-bg); }
   .ticket.soon { border-left-color: var(--c-amber); background: var(--c-amber-bg); }
 
-  /* Canvas Diagram */
+  /* Canvas Diagram Responsif */
   .canvas-container {
     position: relative;
     width: 100%;
@@ -411,7 +411,7 @@
   /* Tables */
   .table-wrap { overflow-x: auto; background: #ffffff; border: 1px solid var(--card-border); border-radius: var(--radius-md); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-  thead th { background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid var(--card-border); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 11px; }
+  thead th { background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid var(--card-border); font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 11px; white-space: nowrap; }
   tbody td { padding: 12px 16px; border-bottom: 1px solid var(--card-border); }
   tbody tr:hover { background: #f8fafc; }
 
@@ -423,9 +423,20 @@
 
   .empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
 
+  /* OPTIMASI LAYAR HP (MOBILE MINIMALIS) */
   @media (max-width: 768px) {
-    .grid-2, .grid-3, .top-type-grid { grid-template-columns: 1fr; }
-    .main-content { padding: 16px; }
+    .grid-2, .grid-3, .top-type-grid { grid-template-columns: 1fr; gap: 12px; }
+    .main-content { padding: 14px 12px 40px; }
+    .card { padding: 14px; margin-bottom: 16px; }
+    h1.page-title { font-size: 20px; }
+    .page-sub { font-size: 12px; margin-bottom: 16px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card { padding: 12px; }
+    .stat-card .val { font-size: 22px; }
+    .canvas-container { height: 230px; }
+    thead th { padding: 8px 10px; font-size: 10px; }
+    tbody td { padding: 8px 10px; font-size: 12px; }
+    .btn { width: 100%; justify-content: center; }
   }
 </style>
 </head>
@@ -930,6 +941,7 @@ function uid(){ return Date.now().toString(36) + Math.random().toString(36).slic
 
 document.getElementById('toggleBtn').addEventListener('click', ()=>{
   document.body.classList.toggle('collapsed');
+  setTimeout(renderReportPanel, 300);
 });
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -938,7 +950,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab === 'laporan') renderReportPanel();
+    if(btn.dataset.tab === 'laporan') setTimeout(renderReportPanel, 50);
   });
 });
 
@@ -1022,7 +1034,7 @@ function syncDropdowns() {
 
   const availableBackups = backups.filter(b => b.kondisi === 'baik' || b.kondisi === 'Tersedia');
   document.getElementById('l_backupUnit').innerHTML = `<option value="">— Tidak Meminjam Backup —</option>` +
-    availableBackups.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.kode)} - ${escapeHtml(b.tipeUnit)} (SN: ${escapeHtml(b.sn||'—')})</option>`).join('');
+    availableBackups.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.tipeUnit)} (SN: ${escapeHtml(b.sn||'—')})</option>`).join('');
 }
 
 function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1242,7 +1254,7 @@ function renderDashboard() {
       }).join('');
 }
 
-/* ACTIONS & FORMS DENGAN ASYNC PREVENTDEFAULT (ANTI-REFRESH) */
+/* ACTIONS & FORMS */
 
 // 1. MASTER CUSTOMER ACTIONS
 function editCustomer(id) {
@@ -1723,6 +1735,7 @@ function renderReportPanel() {
 
 function drawLineChart(periods, newData, serviceData, kategoriMode) {
   const canvas = document.getElementById('lineChartCanvas');
+  if(!canvas) return;
   const ctx = canvas.getContext('2d');
 
   const rect = canvas.getBoundingClientRect();
@@ -1737,13 +1750,14 @@ function drawLineChart(periods, newData, serviceData, kategoriMode) {
 
   if(periods.length === 0) {
     ctx.fillStyle = '#64748b';
-    ctx.font = '13px Plus Jakarta Sans';
+    ctx.font = '12px Plus Jakarta Sans';
     ctx.textAlign = 'center';
-    ctx.fillText('Tidak ada data transaksi untuk ditampilkan pada diagram garis.', w/2, h/2);
+    ctx.fillText('Tidak ada data transaksi.', w/2, h/2);
     return;
   }
 
-  const padding = { top: 30, right: 30, bottom: 40, left: 40 };
+  const isMobile = window.innerWidth <= 768;
+  const padding = { top: 25, right: isMobile ? 15 : 30, bottom: 35, left: isMobile ? 25 : 40 };
   const graphW = w - padding.left - padding.right;
   const graphH = h - padding.top - padding.bottom;
 
@@ -1758,7 +1772,7 @@ function drawLineChart(periods, newData, serviceData, kategoriMode) {
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '11px JetBrains Mono';
+  ctx.font = (isMobile ? '9px' : '11px') + ' JetBrains Mono';
   ctx.textAlign = 'right';
 
   for(let i = 0; i <= gridCount; i++) {
@@ -1768,7 +1782,7 @@ function drawLineChart(periods, newData, serviceData, kategoriMode) {
     ctx.moveTo(padding.left, y);
     ctx.lineTo(w - padding.right, y);
     ctx.stroke();
-    ctx.fillText(val, padding.left - 8, y + 4);
+    ctx.fillText(val, padding.left - 4, y + 3);
   }
 
   const stepX = periods.length > 1 ? graphW / (periods.length - 1) : graphW / 2;
@@ -1779,10 +1793,9 @@ function drawLineChart(periods, newData, serviceData, kategoriMode) {
 
   periods.forEach((p, index) => {
     const x = periods.length > 1 ? padding.left + stepX * index : w / 2;
-
     const parts = p.split('-');
     const labelStr = parts.length === 2 ? `${parts[1]}/${parts[0].slice(2)}` : p;
-    ctx.fillText(labelStr, x, h - 12);
+    ctx.fillText(labelStr, x, h - 10);
 
     if(kategoriMode === 'all' || kategoriMode === 'baru') {
       const val = newData[p] || 0;
@@ -1814,22 +1827,22 @@ function drawLineChart(periods, newData, serviceData, kategoriMode) {
       ctx.lineTo(points[i].x, points[i].y);
     }
     ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = isMobile ? 2 : 3;
     ctx.stroke();
 
     points.forEach(pt => {
       ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      ctx.arc(pt.x, pt.y, isMobile ? 3.5 : 5, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = isMobile ? 1.5 : 2.5;
       ctx.stroke();
 
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 11px Plus Jakarta Sans';
+      ctx.font = (isMobile ? 'bold 9px' : 'bold 11px') + ' Plus Jakarta Sans';
       ctx.textAlign = 'center';
-      ctx.fillText(pt.val, pt.x, pt.y - 10);
+      ctx.fillText(pt.val, pt.x, pt.y - (isMobile ? 6 : 10));
     });
   }
 
@@ -1859,13 +1872,14 @@ function drawBarChart(canvasId, typeDataMap, barColor) {
   const labels = Object.keys(typeDataMap);
   if(labels.length === 0) {
     ctx.fillStyle = '#64748b';
-    ctx.font = '13px Plus Jakarta Sans';
+    ctx.font = '12px Plus Jakarta Sans';
     ctx.textAlign = 'center';
-    ctx.fillText('Belum ada data penjualan tipe unit untuk periode ini.', w/2, h/2);
+    ctx.fillText('Belum ada data tipe unit.', w/2, h/2);
     return;
   }
 
-  const padding = { top: 30, right: 30, bottom: 50, left: 40 };
+  const isMobile = window.innerWidth <= 768;
+  const padding = { top: 25, right: isMobile ? 15 : 30, bottom: isMobile ? 40 : 50, left: isMobile ? 25 : 40 };
   const graphW = w - padding.left - padding.right;
   const graphH = h - padding.top - padding.bottom;
 
@@ -1876,7 +1890,7 @@ function drawBarChart(canvasId, typeDataMap, barColor) {
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '11px JetBrains Mono';
+  ctx.font = (isMobile ? '9px' : '11px') + ' JetBrains Mono';
   ctx.textAlign = 'right';
 
   for(let i = 0; i <= gridCount; i++) {
@@ -1886,11 +1900,11 @@ function drawBarChart(canvasId, typeDataMap, barColor) {
     ctx.moveTo(padding.left, y);
     ctx.lineTo(w - padding.right, y);
     ctx.stroke();
-    ctx.fillText(val, padding.left - 8, y + 4);
+    ctx.fillText(val, padding.left - 4, y + 3);
   }
 
-  const barGap = 20;
-  const barWidth = Math.min(60, (graphW - (labels.length + 1) * barGap) / labels.length);
+  const barGap = isMobile ? 10 : 20;
+  const barWidth = Math.min(isMobile ? 35 : 60, (graphW - (labels.length + 1) * barGap) / labels.length);
   const totalBarWidth = labels.length * barWidth + (labels.length - 1) * barGap;
   const startX = padding.left + (graphW - totalBarWidth) / 2;
 
@@ -1903,22 +1917,22 @@ function drawBarChart(canvasId, typeDataMap, barColor) {
     ctx.fillStyle = barColor;
     ctx.beginPath();
     if (ctx.roundRect) {
-      ctx.roundRect(x, y, barWidth, barH, [6, 6, 0, 0]);
+      ctx.roundRect(x, y, barWidth, barH, [4, 4, 0, 0]);
     } else {
       ctx.rect(x, y, barWidth, barH);
     }
     ctx.fill();
 
     ctx.fillStyle = '#0f172a';
-    ctx.font = 'bold 12px Plus Jakarta Sans';
+    ctx.font = (isMobile ? 'bold 10px' : 'bold 12px') + ' Plus Jakarta Sans';
     ctx.textAlign = 'center';
-    ctx.fillText(val, x + barWidth / 2, y - 8);
+    ctx.fillText(val, x + barWidth / 2, y - 5);
 
     ctx.fillStyle = '#64748b';
-    ctx.font = '11px Plus Jakarta Sans';
+    ctx.font = (isMobile ? '9px' : '11px') + ' Plus Jakarta Sans';
     ctx.save();
-    ctx.translate(x + barWidth / 2, padding.top + graphH + 16);
-    const displayLabel = label.length > 12 ? label.substring(0, 10) + '..' : label;
+    ctx.translate(x + barWidth / 2, padding.top + graphH + 14);
+    const displayLabel = label.length > (isMobile ? 7 : 12) ? label.substring(0, isMobile ? 6 : 10) + '..' : label;
     ctx.fillText(displayLabel, 0, 0);
     ctx.restore();
   });
@@ -2045,14 +2059,15 @@ function renderTables() {
         </tr>`).join('')}</tbody>
       </table>`;
 
-  // Unit Service Table (UPDATED: MENAMPILKAN KOLOM SN & KETERANGAN)
+  // Unit Service Table (HANYA MENAMPILKAN TIPE UNIT & SN DIPINJAMKAN)
   document.getElementById('loanTableWrap').innerHTML = loans.length === 0 
     ? `<div class="empty">Belum ada data unit service.</div>`
     : `<table>
         <thead><tr><th>Customer</th><th>No PO/SO</th><th>Tgl PO/SO</th><th>Tipe Unit</th><th>SN</th><th>Tgl Masuk</th><th>Tgl Kirim</th><th>Backup Dipinjam</th><th>Tgl Pinjam &amp; Kembali</th><th>Status Service</th><th>Keterangan</th><th>Aksi</th></tr></thead>
         <tbody>${loans.map(l => {
           const bk = backups.find(b => b.id === l.backupUnitId);
-          const bkInfo = bk ? `${bk.kode} (${bk.tipeUnit})` : '—';
+          // Hanya mengambil Tipe Unit dan SN tanpa kode backup (BK-...)
+          const bkInfo = bk ? `${bk.tipeUnit} (SN: ${bk.sn || '—'})` : '—';
           const tglBk = (l.tglBackupPinjam || l.tglBackupKembali) ? `${fmtDate(l.tglBackupPinjam)} s.d ${fmtDate(l.tglBackupKembali)}` : '—';
 
           let statusLabel = l.status ? l.status.toUpperCase() : 'BELUM';
@@ -2090,9 +2105,7 @@ function renderAll() {
 }
 
 window.addEventListener('resize', () => {
-  if(document.getElementById('panel-laporan').classList.contains('active')) {
-    renderReportPanel();
-  }
+  renderReportPanel();
 });
 
 loadData();
